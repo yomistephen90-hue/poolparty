@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PoolParty — Race Live</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Barlow+Condensed:wght@400;600;700&family=Barlow:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:#050810; --surface:#0c1120; --surface2:#111827;
+  --border:#1a2540; --accent:#00f5a0; --accent2:#00b4ff;
+  --warn:#ff6b35; --gold:#ffd700; --text:#e8eaf0; --muted:#6b7a99;
+  --car1:#00f5a0; --car2:#00b4ff; --car3:#ff6b35; --car4:#ffd700; --car5:#c084fc;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;overflow-x:hidden;}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 .8rem;height:52px;background:rgba(5,8,16,.97);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);gap:.5rem;}
+.logo{font-family:'Orbitron',sans-serif;font-size:1rem;font-weight:900;color:var(--accent);text-decoration:none;white-space:nowrap;flex-shrink:0;}
+.logo span{color:var(--accent2);}
+.nav-center{display:flex;align-items:center;gap:.8rem;flex-shrink:0;}
+.nav-center a{color:var(--muted);text-decoration:none;font-size:.7rem;font-weight:600;letter-spacing:.5px;text-transform:uppercase;white-space:nowrap;}
+.nav-center a:hover{color:var(--accent);}
+.nav-right{display:flex;align-items:center;gap:.4rem;flex-shrink:0;}
+.wallet-bal{font-family:'Orbitron',sans-serif;font-size:.7rem;color:var(--accent);white-space:nowrap;}
+#walletBtn{background:transparent;border:1px solid var(--accent);color:var(--accent);padding:.35rem .7rem;border-radius:4px;cursor:pointer;font-family:'Orbitron',sans-serif;font-size:.65rem;font-weight:700;letter-spacing:.5px;transition:.2s;white-space:nowrap;}
+#walletBtn:hover,#walletBtn.connected{background:var(--accent);color:#000;}
+@media(max-width:600px){.nav-center{display:none !important;}.wallet-bal{display:none !important;}nav{padding:0 .6rem !important;}#walletBtn{padding:.3rem .6rem;font-size:.62rem;letter-spacing:0;}.logo{font-size:.85rem;}}
+.main{display:flex;flex-direction:column;padding:.5rem;gap:.5rem;overflow-y:auto;}
+.track-container{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:visible;}
+#raceCanvas{display:block;width:100%;height:auto;}
+#winnerOverlay{display:none;position:absolute;inset:0;z-index:10;background:rgba(5,8,16,.88);backdrop-filter:blur(4px);flex-direction:column;align-items:center;justify-content:center;gap:.8rem;}
+#winnerOverlay.show{display:flex;animation:fadeIn .3s ease;}
+@keyframes fadeIn{from{opacity:0;transform:scale(.95);}to{opacity:1;transform:scale(1);}}
+.winner-car-badge{width:80px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Orbitron',sans-serif;font-size:1.4rem;font-weight:900;color:#000;}
+.winner-title{font-family:'Orbitron',sans-serif;font-size:1.4rem;font-weight:900;color:var(--gold);}
+.winner-subtitle{font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;color:var(--muted);letter-spacing:2px;}
+.top-winner-box{background:rgba(255,215,0,.1);border:1px solid rgba(255,215,0,.3);border-radius:6px;padding:.6rem 1.5rem;text-align:center;}
+.top-winner-label{font-size:.7rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;}
+.top-winner-val{font-family:'Orbitron',sans-serif;font-size:1.2rem;font-weight:700;color:var(--gold);}
+.confetti-container{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+.pool-row{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;}
+@media(max-width:600px){.pool-row{grid-template-columns:repeat(2,1fr);}}
+.pool-card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.6rem .8rem;}
+.pool-card-label{font-size:.65rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
+.pool-card-val{font-family:'Orbitron',sans-serif;font-size:.95rem;font-weight:700;color:var(--accent);}
+.car-odds{display:grid;grid-template-columns:repeat(5,1fr);gap:.3rem;}
+.car-odd{min-height:60px;background:var(--surface);border:2px solid var(--border);border-radius:6px;padding:.4rem .2rem;text-align:center;cursor:pointer;transition:.2s;user-select:none;min-width:0;}
+.car-odd.selected{transform:translateY(-3px);}
+.car-odd:hover{border-color:rgba(255,255,255,.2);}
+.car-odd.c1.selected,.car-odd.c1:hover{border-color:var(--car1);background:rgba(0,245,160,.08);}
+.car-odd.c2.selected,.car-odd.c2:hover{border-color:var(--car2);background:rgba(0,180,255,.08);}
+.car-odd.c3.selected,.car-odd.c3:hover{border-color:var(--car3);background:rgba(255,107,53,.08);}
+.car-odd.c4.selected,.car-odd.c4:hover{border-color:var(--car4);background:rgba(255,215,0,.08);}
+.car-odd.c5.selected,.car-odd.c5:hover{border-color:var(--car5);background:rgba(192,132,252,.08);}
+.car-dot{width:20px;height:12px;border-radius:3px;margin:0 auto .3rem;}
+.car-num-label{font-family:'Orbitron',sans-serif;font-size:.8rem;font-weight:700;}
+.car-pct{font-size:.7rem;color:var(--muted);}
+.car-sel-badge{font-size:.65rem;font-weight:600;margin-top:.2rem;}
+.stake-row{display:flex;gap:.8rem;align-items:flex-end;}
+.stake-input-wrap{flex:1;}
+.input-label{font-size:.75rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:.4rem;}
+.stake-input-box{display:flex;align-items:center;gap:.5rem;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.6rem .8rem;}
+.stake-input-box input{background:none;border:none;outline:none;color:var(--text);font-family:'Orbitron',sans-serif;font-size:1rem;font-weight:700;flex:1;width:0;}
+.stake-denom{font-family:'Orbitron',sans-serif;font-size:.75rem;color:var(--muted);}
+.quick-btns{display:flex;gap:.4rem;margin-top:.4rem;}
+.quick-btn{background:var(--surface2);border:1px solid var(--border);color:var(--muted);padding:.3rem .6rem;border-radius:4px;cursor:pointer;font-size:.75rem;font-family:'Orbitron',sans-serif;transition:.2s;}
+.quick-btn:hover{border-color:var(--accent);color:var(--accent);}
+#stakeBtn{padding:.7rem 1.5rem;background:var(--accent);color:#000;border:none;border-radius:6px;cursor:pointer;font-family:'Orbitron',sans-serif;font-size:.85rem;font-weight:700;letter-spacing:1px;transition:.2s;white-space:nowrap;}
+#stakeBtn:hover{background:#00c880;}
+#stakeBtn:disabled{background:var(--muted);color:rgba(0,0,0,.5);cursor:not-allowed;}
+.sidebar{border-left:1px solid var(--border);background:var(--surface);display:flex;flex-direction:column;overflow:hidden;}
+.sidebar-tabs{display:flex;border-bottom:1px solid var(--border);}
+.tab-btn{flex:1;padding:.7rem;text-align:center;cursor:pointer;font-family:'Orbitron',sans-serif;font-size:.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);border:none;background:none;border-bottom:2px solid transparent;transition:.2s;}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tab-pane{display:none;flex:1;overflow-y:auto;flex-direction:column;}
+.tab-pane.active{display:flex;}
+.feed-header{padding:.8rem 1rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.feed-title{font-family:'Orbitron',sans-serif;font-size:.7rem;color:var(--muted);letter-spacing:1px;}
+.feed-pool{font-family:'Orbitron',sans-serif;font-size:.9rem;font-weight:700;color:var(--accent);}
+.feed-list{flex:1;overflow-y:auto;padding:.5rem;}
+.feed-item{display:flex;align-items:center;gap:.6rem;padding:.5rem .6rem;border-radius:4px;border-bottom:1px solid rgba(255,255,255,.03);animation:slideIn .3s ease;}
+@keyframes slideIn{from{opacity:0;transform:translateX(20px);}to{opacity:1;transform:translateX(0);}}
+.feed-car-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.feed-addr{font-family:'Orbitron',sans-serif;font-size:.7rem;color:var(--muted);flex:1;}
+.feed-amount{font-family:'Orbitron',sans-serif;font-size:.75rem;font-weight:700;}
+.feed-car-tag{font-size:.65rem;color:var(--muted);}
+.feed-time{font-size:.65rem;color:rgba(107,122,153,.5);}
+.lb-item{display:flex;align-items:center;gap:.8rem;padding:.7rem 1rem;border-bottom:1px solid rgba(255,255,255,.03);}
+.lb-rank{font-family:'Orbitron',sans-serif;font-size:.8rem;font-weight:700;color:var(--muted);width:20px;}
+.lb-rank.gold{color:var(--gold);}.lb-rank.silver{color:#c0c0c0;}.lb-rank.bronze{color:#cd7f32;}
+.lb-addr{font-family:'Orbitron',sans-serif;font-size:.7rem;color:var(--text);flex:1;}
+.lb-won{font-family:'Orbitron',sans-serif;font-size:.75rem;font-weight:700;color:var(--accent);}
+.lb-races{font-size:.7rem;color:var(--muted);}
+.hist-item{display:flex;align-items:center;gap:.6rem;padding:.6rem 1rem;border-bottom:1px solid rgba(255,255,255,.03);}
+.hist-badge{font-size:.65rem;font-weight:700;padding:.2rem .5rem;border-radius:3px;font-family:'Orbitron',sans-serif;letter-spacing:1px;}
+.hist-badge.win{background:rgba(0,245,160,.15);color:var(--accent);}.hist-badge.lose{background:rgba(255,107,53,.1);color:var(--warn);}
+.hist-car{width:14px;height:14px;border-radius:3px;}
+.hist-info{flex:1;}
+.hist-race{font-family:'Orbitron',sans-serif;font-size:.7rem;color:var(--text);}
+.hist-detail{font-size:.65rem;color:var(--muted);}
+.hist-amount{font-family:'Orbitron',sans-serif;font-size:.75rem;font-weight:700;}
+.outcomes-wrap{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:.5rem .8rem;}
+.outcomes-label{font-family:'Orbitron',sans-serif;font-size:.58rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:.4rem;}
+.outcomes-bar{display:flex;gap:.3rem;flex-wrap:nowrap;overflow:hidden;}
+.outcome-pill{flex-shrink:0;min-width:36px;padding:.25rem .4rem;border-radius:4px;font-family:'Orbitron',sans-serif;font-size:.6rem;font-weight:700;text-align:center;color:#000;white-space:nowrap;animation:pillIn .25s ease;}
+@keyframes pillIn{from{opacity:0;transform:scale(.6);}to{opacity:1;transform:scale(1);}}
+#phaseBanner{position:fixed;top:56px;left:0;right:0;z-index:90;display:flex;align-items:center;justify-content:space-between;padding:.6rem 1rem;border-bottom:1px solid;background:rgba(4,6,15,.97);transition:background .4s,border-color .4s;}
+#phaseBanner.staking{border-color:rgba(0,245,160,.25);background:rgba(4,6,15,.97);}
+#phaseBanner.locked{border-color:rgba(255,107,53,.5);background:rgba(255,107,53,.06);}
+#phaseBanner.spinning,#phaseBanner.result{border-color:rgba(0,180,255,.3);background:rgba(0,180,255,.04);}
+#phaseBanner.payout{border-color:rgba(255,215,0,.4);background:rgba(255,215,0,.04);}
+.phase-timer{font-family:'Orbitron',sans-serif;font-size:1.8rem;font-weight:900;color:var(--accent);min-width:55px;text-align:right;flex-shrink:0;}
+.phase-label{font-family:'Orbitron',sans-serif;font-size:.7rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;}
+#phaseBanner.locked .phase-label{color:#ff6b35;}
+#phaseBanner.payout .phase-label{color:#ffd700;}
+.phase-info{font-size:.72rem;color:var(--muted);}
+.app{margin-top:100px;height:auto;display:flex;flex-direction:column;gap:.5rem;padding:.5rem;}
+.main{display:flex;flex-direction:column;gap:.5rem;width:100%;}
+.track-container{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:visible;width:100%;height:auto;}
+#raceCanvas{display:block;width:100%;height:auto;min-height:280px;}
+.sidebar{width:100%;border-left:none;border-top:1px solid var(--border);background:var(--surface);display:flex;flex-direction:column;overflow:hidden;max-height:300px;}</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="logo">Pool<span>Party</span></a>
+  <div class="nav-center">
+    <a href="lobby.html">All Games</a>
+    <a href="simulate.html">Practice Mode</a>
+  </div>
+  <div class="nav-right">
+    <span class="wallet-bal" id="walletBalance"></span>
+    <button onclick="openFaucet()" style="background:transparent;border:1px solid var(--warn);color:var(--warn);padding:.4rem .8rem;border-radius:4px;cursor:pointer;font-family:'Orbitron',sans-serif;font-size:.65rem;font-weight:700;letter-spacing:1px;">GET TEST INJ</button>
+    <button id="walletBtn">Connect Wallet</button>
+  </div>
+</nav>
+
+<div class="app" style="display:grid;grid-template-columns:1fr;gap:.5rem;">
+  <div class="main" style="width:100%;">
+    <div class="phase-banner staking" id="phaseBanner">
+      <div>
+        <div class="phase-label" id="phaseLabel">⏳ STAKING OPEN</div>
+        <div class="phase-info" id="phaseInfo">Pick your cars and place your INJ</div>
+      </div>
+      <div class="phase-timer" id="phaseTimer">30</div>
+    </div>
+
+    <div class="pool-row">
+      <div class="pool-card">
+        <div class="pool-card-label">Pool Size</div>
+        <div class="pool-card-val" id="poolTotal">0.000 INJ</div>
+      </div>
+      <div class="pool-card">
+        <div class="pool-card-label">Players</div>
+        <div class="pool-card-val" id="poolPlayers">0</div>
+      </div>
+      <div class="pool-card">
+        <div class="pool-card-label">Race #</div>
+        <div class="pool-card-val" id="raceNum">001</div>
+      </div>
+      <div class="pool-card">
+        <div class="pool-card-label">Your Stake</div>
+        <div class="pool-card-val" id="myStakeDisplay">—</div>
+      </div>
+    </div>
+
+    <div class="track-container">
+      <canvas id="raceCanvas" width="800" height="250"></canvas>
+      <div id="winnerOverlay">
+        <div class="confetti-container" id="confettiContainer"></div>
+        <div class="winner-car-badge" id="winnerBadge">1</div>
+        <div class="winner-title">🏆 CAR <span id="winnerNum">1</span> WINS!</div>
+        <div class="winner-subtitle">PAYOUTS SENT · BOOKING OPEN (30S)</div>
+        <div class="top-winner-box">
+          <div class="top-winner-label">Biggest Win This Race</div>
+          <div class="top-winner-val" id="topWinnerVal">inj1ab...3x · +2.840 INJ</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="car-odds" id="carOdds">
+      <div class="car-odd c1" data-car="1" onclick="toggleCar(1)">
+        <div class="car-dot" style="background:var(--car1)"></div>
+        <div class="car-num-label" style="color:var(--car1)">CAR 1</div>
+        <div class="car-pct" id="odds1">0%</div>
+        <div class="car-sel-badge" id="sel1"></div>
+      </div>
+      <div class="car-odd c2" data-car="2" onclick="toggleCar(2)">
+        <div class="car-dot" style="background:var(--car2)"></div>
+        <div class="car-num-label" style="color:var(--car2)">CAR 2</div>
+        <div class="car-pct" id="odds2">0%</div>
+        <div class="car-sel-badge" id="sel2"></div>
+      </div>
+      <div class="car-odd c3" data-car="3" onclick="toggleCar(3)">
+        <div class="car-dot" style="background:var(--car3)"></div>
+        <div class="car-num-label" style="color:var(--car3)">CAR 3</div>
+        <div class="car-pct" id="odds3">0%</div>
+        <div class="car-sel-badge" id="sel3"></div>
+      </div>
+      <div class="car-odd c4" data-car="4" onclick="toggleCar(4)">
+        <div class="car-dot" style="background:var(--car4)"></div>
+        <div class="car-num-label" style="color:var(--car4)">CAR 4</div>
+        <div class="car-pct" id="odds4">0%</div>
+        <div class="car-sel-badge" id="sel4"></div>
+      </div>
+      <div class="car-odd c5" data-car="5" onclick="toggleCar(5)">
+        <div class="car-dot" style="background:var(--car5)"></div>
+        <div class="car-num-label" style="color:var(--car5)">CAR 5</div>
+        <div class="car-pct" id="odds5">0%</div>
+        <div class="car-sel-badge" id="sel5"></div>
+      </div>
+    </div>
+
+    <div class="stake-row">
+      <div class="stake-input-wrap">
+        <div class="input-label">Stake Amount</div>
+        <div class="stake-input-box">
+          <input type="number" id="stakeAmount" placeholder="0.00" min="0.01" step="0.01" value="0.1"/>
+          <span class="stake-denom">INJ</span>
+        </div>
+        <div class="quick-btns">
+          <button class="quick-btn" onclick="setStake(0.1)">0.1</button>
+          <button class="quick-btn" onclick="setStake(0.5)">0.5</button>
+          <button class="quick-btn" onclick="setStake(1)">1</button>
+          <button class="quick-btn" onclick="setStake(5)">5</button>
+          <button class="quick-btn" onclick="setStake(10)">10</button>
+        </div>
+      </div>
+      <button id="stakeBtn" onclick="placeStake()">STAKE INJ</button>
+    </div>
+
+    <div class="outcomes-wrap">
+      <div class="outcomes-label">LAST 20 RESULTS</div>
+      <div class="outcomes-bar" id="outcomesBar"></div>
+    </div>
+  </div>
+
+  <div class="sidebar" style="border-left:none;border-top:1px solid var(--border);">
+    <div class="sidebar-tabs">
+      <button class="tab-btn active" onclick="switchTab('feed',this)">Live Stakes</button>
+      <button class="tab-btn" onclick="switchTab('leaderboard',this)">Leaderboard</button>
+      <button class="tab-btn" onclick="switchTab('history',this)">My History</button>
+    </div>
+
+    <div class="tab-pane active" id="tab-feed">
+      <div class="feed-header">
+        <span class="feed-title">LIVE POOL FEED</span>
+        <span class="feed-pool" id="feedPoolTotal">0.000 INJ</span>
+      </div>
+      <div class="feed-list" id="feedList"></div>
+    </div>
+
+    <div class="tab-pane" id="tab-leaderboard">
+      <div class="feed-header"><span class="feed-title">ALL-TIME LEADERBOARD</span></div>
+      <div id="leaderboardList"></div>
+    </div>
+
+    <div class="tab-pane" id="tab-history">
+      <div class="feed-header"><span class="feed-title">MY RACE HISTORY</span></div>
+      <div id="historyList"></div>
+    </div>
+  </div>
+</div>
+
+<div id="walletRequiredModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.88);backdrop-filter:blur(10px);align-items:center;justify-content:center;">
+  <div style="background:#0b0f1e;border:1px solid #1c2340;border-radius:16px;padding:2rem;text-align:center;max-width:380px;width:90%;position:relative;">
+    <div style="font-size:2.5rem;margin-bottom:.8rem;">🔒</div>
+    <div style="font-family:'Orbitron',sans-serif;font-size:1rem;font-weight:700;color:#e8eaf6;margin-bottom:.5rem;">WALLET REQUIRED</div>
+    <p style="color:#5a6485;font-size:.88rem;line-height:1.6;margin-bottom:1.2rem;">You need a connected Keplr or Leap wallet with real INJ to stake.<br>No INJ yet? Get some below.</p>
+    <div style="display:flex;flex-direction:column;gap:.6rem;margin-bottom:1rem;">
+      <button onclick="window.PumpWallet.connect().then(()=>document.getElementById('walletRequiredModal').style.display='none')" style="background:#00f5a0;color:#000;border:none;padding:.7rem;border-radius:8px;cursor:pointer;font-family:'Orbitron',sans-serif;font-size:.8rem;font-weight:700;letter-spacing:1px;">🔗 CONNECT WALLET</button>
+      <a href="index.html#get-inj" style="background:transparent;border:1px solid #1c2340;color:#00b4ff;padding:.65rem;border-radius:8px;font-family:'Orbitron',sans-serif;font-size:.75rem;font-weight:700;letter-spacing:1px;text-decoration:none;display:block;">💰 GET INJ FIRST</a>
+      <a href="simulate-car.html" id="practiceLink" style="background:transparent;border:1px solid #fbbf24;color:#fbbf24;padding:.65rem;border-radius:8px;font-family:'Orbitron',sans-serif;font-size:.75rem;font-weight:700;letter-spacing:1px;text-decoration:none;display:block;">🟡 PRACTICE WITH FAKE INJ</a>
+    </div>
+    <button onclick="document.getElementById('walletRequiredModal').style.display='none'" style="background:none;border:none;color:#5a6485;cursor:pointer;font-size:.8rem;">Maybe Later</button>
+  </div>
+</div>
+
+<script src="wallet.js"></script>
+<script src="contract.js"></script>
+<script>
+const EXPLORER = 'https://testnet.explorer.injective.network/account';
+const CAR_COLORS = ['#00f5a0','#00b4ff','#ff6b35','#ffd700','#c084fc'];
+const CAR_NAMES  = ['Car 1','Car 2','Car 3','Car 4','Car 5'];
+const STAKING_DURATION = 30000;
+const LOCK_DURATION    = 5000;
+const RACE_DURATION    = 10000;
+const WINNER_DISPLAY   = 4000;
+
+let phase = 'staking';
+let phaseStart = Date.now();
+let raceNumber = 1;
+let selectedCars = [];
+let poolTotal = 0;
+let poolPlayers = 0;
+let stakeEntries = [];
+let raceWinner = -1;
+let myStakeThisRace = null;
+let myHistory = [];
+let leaderboard = {};
+let animFrame;
+let raceStartTime = 0;
+let obstaclesList = [];
+let particles = [];
+
+const cars = [0,1,2,3,4].map(i => ({i, x:60, y:0, speed:0, baseSpeed:0, wobble:0, exhaustTimer:0, finished:false}));
+
+const canvas = document.getElementById('raceCanvas');
+const ctx = canvas.getContext('2d');
+const LANE_H = 44;
+const TRACK_Y_START = 10;
+const FINISH_X = canvas.width - 60;
+const CAR_W = 40, CAR_H = 21;
+
+function getLaneY(i){ return TRACK_Y_START + i * LANE_H + LANE_H/2; }
+
+function drawTrack(){
+  ctx.fillStyle = '#0d1118';
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  for(let i=0;i<5;i++){
+    const y = TRACK_Y_START + i*LANE_H;
+    ctx.fillStyle = i%2===0 ? 'rgba(255,255,255,.025)' : 'rgba(0,0,0,.1)';
+    ctx.fillRect(0, y, canvas.width, LANE_H);
+  }
+
+  ctx.strokeStyle = 'rgba(255,255,255,.08)';
+  ctx.setLineDash([20,15]);
+  ctx.lineWidth = 1;
+  for(let i=1;i<5;i++){
+    const y = TRACK_Y_START + i*LANE_H;
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+
+  const fw = 14;
+  for(let r=0;r<Math.ceil(canvas.height/fw);r++){
+    for(let c=0;c<2;c++){
+      ctx.fillStyle = (r+c)%2===0 ? '#fff' : '#111';
+      ctx.fillRect(FINISH_X + c*fw, r*fw, fw, fw);
+    }
+  }
+
+  ctx.strokeStyle = 'rgba(0,245,160,.4)';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(60,TRACK_Y_START); ctx.lineTo(60,TRACK_Y_START+5*LANE_H); ctx.stroke();
+}
+
+function drawCar(car){
+  const x = car.x, y = getLaneY(car.i);
+  const col = CAR_COLORS[car.i];
+  const wobble = Math.sin(car.wobble) * 1.2;
+  const isRacing = phase === 'racing';
+
+  ctx.save();
+  ctx.translate(x, y + wobble);
+
+  if(car.speed > 0.5 && isRacing){
+    const fl = 8 + Math.random()*14;
+    const g = ctx.createLinearGradient(-CAR_W/2, 0, -CAR_W/2 - fl, 0);
+    g.addColorStop(0,'rgba(255,140,0,.9)');
+    g.addColorStop(0.5,'rgba(255,60,0,.6)');
+    g.addColorStop(1,'rgba(255,20,0,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.ellipse(-CAR_W/2 - fl*0.4, 0, fl*0.6, 3.5, 0, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  const wxF = CAR_W/2 - 6,  wxB = -CAR_W/2 + 6;
+  const wy = CAR_H/2 + 3;
+  ctx.fillStyle = '#1a1a2e';
+  ctx.strokeStyle = '#444';
+  ctx.lineWidth = 1;
+  [[wxF, -wy],[wxF, wy],[wxB, -wy],[wxB, wy]].forEach(([wx,wz]) => {
+    ctx.beginPath();
+    ctx.ellipse(wx, wz, 5, 3, Math.PI/2, 0, Math.PI*2);
+    ctx.fill(); ctx.stroke();
+  });
+
+  ctx.fillStyle = col;
+  ctx.shadowColor = col;
+  ctx.shadowBlur = 6;
+  ctx.beginPath();
+  ctx.moveTo(CAR_W/2, 0);
+  ctx.bezierCurveTo(CAR_W/2, -CAR_H/2, CAR_W/4, -CAR_H/2, 0, -CAR_H/2);
+  ctx.lineTo(-CAR_W/2 + 6, -CAR_H/2);
+  ctx.quadraticCurveTo(-CAR_W/2, -CAR_H/2, -CAR_W/2, -CAR_H/2 + 6);
+  ctx.lineTo(-CAR_W/2, CAR_H/2 - 6);
+  ctx.quadraticCurveTo(-CAR_W/2, CAR_H/2, -CAR_W/2 + 6, CAR_H/2);
+  ctx.lineTo(0, CAR_H/2);
+  ctx.bezierCurveTo(CAR_W/4, CAR_H/2, CAR_W/2, CAR_H/2, CAR_W/2, 0);
+  ctx.closePath();
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  ctx.fillStyle = 'rgba(0,0,0,0.28)';
+  ctx.beginPath();
+  ctx.ellipse(0, 0, CAR_W*0.28, CAR_H*0.36, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  ctx.fillStyle = 'rgba(255,255,255,0.25)';
+  ctx.beginPath();
+  ctx.moveTo(CAR_W*0.1,  -CAR_H*0.15);
+  ctx.lineTo(CAR_W*0.3,  -CAR_H*0.42);
+  ctx.lineTo(CAR_W*0.32, -CAR_H*0.42);
+  ctx.lineTo(CAR_W*0.12, -CAR_H*0.15);
+  ctx.closePath();
+  ctx.fill();
+
+  const eyeX = CAR_W/2 - 10;
+  const eyeOffsets = [-6, 6];
+  eyeOffsets.forEach(yo => {
+    ctx.fillStyle = '#f0f8ff';
+    ctx.beginPath();
+    ctx.ellipse(eyeX, yo, 5, 6, Math.PI*0.1, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = '#1a6ef5';
+    ctx.beginPath();
+    ctx.ellipse(eyeX + 1, yo, 3, 4, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.ellipse(eyeX + 1.5, yo, 1.5, 2.5, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+    ctx.beginPath();
+    ctx.arc(eyeX + 0.5, yo - 1.5, 1, 0, Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.arc(eyeX, yo, 5.5, Math.PI*1.2, Math.PI*1.8);
+    ctx.stroke();
+  });
+
+  ctx.fillStyle = 'rgba(255,255,255,0.9)';
+  ctx.font = 'bold 9px Orbitron, monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(car.i + 1, -4, 0);
+
+  if(car.speed > 1 && isRacing){
+    const rgb = hexToRgb(col);
+    for(let s=0;s<4;s++){
+      const len = 12 + Math.random()*22;
+      const sy = (Math.random()-.5) * CAR_H * 0.6;
+      ctx.strokeStyle = `rgba(${rgb},${0.15 + Math.random()*.2})`;
+      ctx.lineWidth = 0.8 + Math.random();
+      ctx.beginPath();
+      ctx.moveTo(-CAR_W/2 - 4, sy);
+      ctx.lineTo(-CAR_W/2 - 4 - len, sy);
+      ctx.stroke();
+    }
+  }
+
+  ctx.restore();
+}
+
+function hexToRgb(hex){
+  const r = parseInt(hex.slice(1,3),16);
+  const g = parseInt(hex.slice(3,5),16);
+  const b = parseInt(hex.slice(5,7),16);
+  return `${r},${g},${b}`;
+}
+
+function drawObstacles(){
+  obstaclesList.forEach(o => {
+    if(o.hit) return;
+    ctx.save();
+    ctx.translate(o.x, getLaneY(o.lane));
+
+    if(o.type==='oil'){
+      ctx.fillStyle = 'rgba(80,40,200,.6)';
+      ctx.beginPath(); ctx.ellipse(0,0,18,8,0,0,Math.PI*2); ctx.fill();
+      ctx.strokeStyle='rgba(120,80,255,.4)'; ctx.lineWidth=1; ctx.stroke();
+    } else {
+      ctx.fillStyle = '#555';
+      ctx.beginPath(); ctx.arc(0,0,8,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#888';
+      ctx.beginPath(); ctx.arc(-3,-2,4,0,Math.PI*2); ctx.fill();
+    }
+    ctx.restore();
+  });
+}
+
+function drawParticles(){
+  particles = particles.filter(p => p.life > 0);
+  particles.forEach(p => {
+    p.x += p.vx; p.y += p.vy; p.life--;
+    ctx.globalAlpha = p.life / p.maxLife;
+    ctx.fillStyle = p.color;
+    ctx.fillRect(p.x, p.y, p.size, p.size);
+  });
+  ctx.globalAlpha = 1;
+}
+
+function spawnHitParticles(x, y, color){
+  for(let i=0;i<12;i++){
+    particles.push({x, y, vx:(Math.random()-.5)*4, vy:(Math.random()-.5)*4, size:Math.random()*4+2, color, life:20, maxLife:20});
+  }
+}
+
+function initRace(){
+  raceWinner = Math.floor(Math.random() * 5);
+  cars.forEach(c => {
+    c.x = 70;
+    c.wobble = Math.random() * Math.PI * 2;
+    c.finished = false;
+    c.speed = 0;
+    c.baseSpeed = c.i === raceWinner
+      ? 1.38 + Math.random() * 0.08
+      : 1.0  + Math.random() * 0.28;
+  });
+  obstaclesList = [];
+  nextObstacleTime = 0;
+  particles = [];
+}
+
+let nextObstacleTime = 0;
+
+function updateRace(elapsed){
+  const progress = Math.min(elapsed / RACE_DURATION, 1);
+
+  if(elapsed > nextObstacleTime && progress < 0.88){
+    const leadX = Math.max(...cars.map(c => c.x));
+    const spawnX = leadX + 80 + Math.random() * 120;
+    if(spawnX < FINISH_X - 40){
+      obstaclesList.push({lane: Math.floor(Math.random() * 5), x: spawnX, type: Math.random() > 0.5 ? 'oil' : 'rock', hit: false});
+    }
+    nextObstacleTime = elapsed + 900 + Math.random() * 600;
+  }
+
+  cars.forEach(c => {
+    if(c.finished) return;
+    c.speed += (c.baseSpeed - c.speed) * 0.1;
+    if(c.i === raceWinner && progress > 0.85){ c.speed = Math.max(c.speed, c.baseSpeed * 1.12); }
+    c.x += c.speed;
+    c.wobble += 0.12;
+
+    obstaclesList.forEach(o => {
+      if(o.hit) return;
+      if(o.lane === c.i && Math.abs(c.x - o.x) < 20){
+        o.hit = true;
+        const slowdown = c.i === raceWinner ? 0.97 : 0.78;
+        c.speed *= slowdown;
+        spawnHitParticles(o.x, getLaneY(c.i), CAR_COLORS[c.i]);
+      }
+    });
+
+    if(c.x >= FINISH_X - CAR_W / 2){
+      c.x = FINISH_X - CAR_W / 2;
+      c.finished = true;
+      c.speed = 0;
+    }
+  });
+}
+
+function renderFrame(timestamp){
+  if(phase !== 'racing'){ drawIdleTrack(); return; }
+  const elapsed = timestamp - raceStartTime;
+  updateRace(elapsed);
+
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  drawTrack();
+  drawObstacles();
+  cars.forEach(c => drawCar(c));
+  drawParticles();
+
+  if(elapsed >= RACE_DURATION){
+    endRace();
+    return;
+  }
+  animFrame = requestAnimationFrame(renderFrame);
+}
+
+function drawIdleTrack(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  drawTrack();
+  cars.forEach((c,i) => {
+    c.wobble += 0.05;
+    drawCar(c);
+  });
+}
+
+let phaseInterval;
+let phaseCountdown;
+
+const CAR_COLS_OUT = ['#00f5a0', '#00b4ff', '#ff6b35', '#ffd700', '#c084fc'];
+let recentOutcomes=[];
+function addOutcome(label,color){
+  recentOutcomes.push({label,color});
+  if(recentOutcomes.length>20)recentOutcomes.shift();
+  renderOutcomes();
+}
+function renderOutcomes(){
+  const bar=document.getElementById('outcomesBar');if(!bar)return;
+  bar.innerHTML='';
+  recentOutcomes.forEach(o=>{
+    const p=document.createElement('div');p.className='outcome-pill';
+    p.style.background=o.color;p.style.color='#000';p.textContent=o.label;
+    bar.appendChild(p);
+  });
+}
+
+function startStaking(){
+  phase = 'staking';
+  phaseStart = Date.now();
+  stakeEntries = [];
+  poolTotal = 0;
+  poolPlayers = 0;
+  myStakeThisRace = null;
+
+  cars.forEach(c => {
+    c.x = 70;
+    c.speed = 0;
+    c.finished = false;
+    c.wobble = Math.random() * Math.PI * 2;
+  });
+  obstaclesList = [];
+  particles = [];
+  selectedCars = [];
+
+  updatePhaseBanner('staking','⏳ STAKING OPEN','Pick your option — 30s to stake, race in 10s');
+  document.getElementById('stakeBtn').disabled = false;
+  document.getElementById('stakeBtn').textContent = 'STAKE INJ';
+  document.getElementById('carOdds').style.pointerEvents = 'auto';
+  document.getElementById('myStakeDisplay').textContent = '—';
+
+  updatePoolDisplay();
+  clearFeed();
+  hideWinnerOverlay();
+
+  cancelAnimationFrame(animFrame);
+  animFrame = requestAnimationFrame(idleLoop);
+
+  // ✅ NO DEMO PLAYERS - REMOVED startSimulatedStakes() call
+
+  if(typeof onStakingOpened === 'function') onStakingOpened();
+  startCountdown(STAKING_DURATION, (remaining) => {
+    const secs = Math.ceil(remaining/1000);
+    document.getElementById('phaseTimer').textContent = Math.ceil(remaining/1000);
+    if(secs <= 5 && secs > 0){
+      transitionToLocked(secs);
+    }
+  }, startRacing);
+}
+
+function transitionToLocked(secsLeft){
+  if(phase === 'locked') return;
+  phase = 'locked';
+  clearInterval(phaseInterval);
+  // ✅ NO DEMO PLAYERS - REMOVED stopSimulatedStakes() call
+  document.getElementById('stakeBtn').disabled = true;
+  document.getElementById('carOdds').style.pointerEvents = 'none';
+  updatePhaseBanner('locked','🔒 BOOKING CLOSED','Race starting in 30 seconds...');
+  let s = secsLeft;
+  phaseCountdown = setInterval(() => {
+    s--;
+    document.getElementById('phaseTimer').textContent = s;
+    if(s <= 0){ clearInterval(phaseCountdown); startRacing(); }
+  }, 1000);
+}
+
+function startRacing(){
+  if(phase === 'racing') return;
+  phase = 'racing';
+  phaseStart = Date.now();
+  raceStartTime = performance.now();
+  updatePhaseBanner('racing','🏁 RACE IN PROGRESS','10 seconds — may the best car win');
+
+  cancelAnimationFrame(animFrame);
+  initRace();
+  animFrame = requestAnimationFrame(renderFrame);
+
+  let s = 10;
+  document.getElementById('phaseTimer').textContent = s;
+  phaseCountdown = setInterval(() => {
+    s--;
+    document.getElementById('phaseTimer').textContent = Math.max(s,0);
+    if(s <= 0) clearInterval(phaseCountdown);
+  }, 1000);
+}
+
+// ── CARRYOVER POOL ────────────────────────────────────────────────────────
+let carryoverPool = 0; // Pool that carries from previous race (no winners)
+
+function endRace(){
+  cancelAnimationFrame(animFrame);
+  clearInterval(phaseCountdown);
+  phase = 'payout';
+
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  drawTrack(); drawObstacles();
+  cars.forEach(c => drawCar(c));
+
+  showWinnerOverlay();
+  processPayouts();
+  updateLeaderboard();
+
+  let nextIn = Math.ceil(WINNER_DISPLAY / 1000);
+  updatePhaseBanner('payout','🏆 WINNER! BOOKING OPEN (30S)S IN...', `Race #${raceNumber + 1} incoming — get ready`);
+  document.getElementById('phaseTimer').textContent = nextIn;
+  const nextCountdown = setInterval(() => {
+    nextIn--;
+    document.getElementById('phaseTimer').textContent = Math.max(nextIn, 0);
+    if(nextIn <= 0) clearInterval(nextCountdown);
+  }, 1000);
+
+  setTimeout(() => {
+    raceNumber++;
+    document.getElementById('raceNum').textContent = String(raceNumber).padStart(3,'0');
+    startStaking();
+  }, WINNER_DISPLAY);
+}
+
+function startCountdown(duration, onTick, onComplete){
+  const end = Date.now() + duration;
+  clearInterval(phaseInterval);
+  phaseInterval = setInterval(() => {
+    const remaining = end - Date.now();
+    if(remaining <= 0){
+      clearInterval(phaseInterval);
+      onComplete();
+    } else {
+      onTick(remaining);
+    }
+  }, 100);
+}
+
+function updatePhaseBanner(phaseClass, label, info){
+  const b = document.getElementById('phaseBanner');
+  b.className = `phase-banner ${phaseClass}`;
+  document.getElementById('phaseLabel').textContent = label;
+  document.getElementById('phaseInfo').textContent = info;
+}
+
+function showWinnerOverlay(){
+  addOutcome('CAR '+(raceWinner+1), CAR_COLS_OUT[raceWinner]);
+  const ov = document.getElementById('winnerOverlay');
+  const badge = document.getElementById('winnerBadge');
+  const num = document.getElementById('winnerNum');
+  badge.style.background = CAR_COLORS[raceWinner];
+  badge.textContent = raceWinner + 1;
+  num.textContent = raceWinner + 1;
+  ov.classList.add('show');
+  spawnConfetti();
+
+  const winners = stakeEntries.filter(e => e.cars.includes(raceWinner+1));
+  const myWon = myStakeThisRace && myStakeThisRace.cars.includes(raceWinner+1);
+
+  if(winners.length > 0){
+    // ✅ WINNERS EXIST — distribute pool (99% to winners, 1% fee)
+    // Pool includes both current pool + any carryover from previous races
+    const totalPool = poolTotal + carryoverPool;
+    const top = winners.reduce((a,b) => a.amount > b.amount ? a : b);
+    const payout = calculatePayout(top, winners.length, totalPool);
+    const isRealWinner = top.addr.startsWith('inj1');
+    const winnerLink = isRealWinner
+      ? `<a href="https://testnet.explorer.injective.network/account/${top.addr}" target="_blank" rel="noopener" style="color:#00b4ff;font-size:.65rem;text-decoration:none;display:block;margin-top:.2rem;opacity:.8;">🔍 View on Injective Explorer</a>`
+      : '';
+    const shortTop = top.addr.startsWith('inj1') ? top.addr.slice(0,7)+'...'+top.addr.slice(-5) : top.addr;
+    document.getElementById('topWinnerVal').innerHTML = `${shortTop} · +${payout.toFixed(3)} INJ${winnerLink}`;
+
+    if(myStakeThisRace && myWon){
+      const myPayout = calculatePayout(myStakeThisRace, winners.length, totalPool);
+      myHistory.unshift({race:raceNumber, result:'win', car:raceWinner+1, staked:myStakeThisRace.amount, won:myPayout});
+
+      if(myStakeThisRace.onChain && typeof checkPlayerPayout === 'function'){
+        checkPlayerPayout(window._contractRaceId).then(realPayout => {
+          if(realPayout !== null){
+            showPayoutToast(`+${realPayout.toFixed(4)} INJ landed in your wallet! 🏆`);
+            window.PumpWallet?.fetchBalance().then(() => window.PumpWallet.updateUI());
+          }
+        });
+      } else {
+        showPayoutToast(`+${myPayout.toFixed(3)} INJ (demo) — connect wallet for real payouts`);
+      }
+    } else if(myStakeThisRace){
+      myHistory.unshift({race:raceNumber, result:'lose', car:myStakeThisRace.cars[0], staked:myStakeThisRace.amount, won:0});
+    }
+    
+    // ✅ CLEAR CARRYOVER — it was distributed
+    carryoverPool = 0;
+  } else {
+    // ❌ NO WINNERS — entire pool carries to next race
+    carryoverPool += poolTotal;
+    document.getElementById('topWinnerVal').innerHTML = `<span style="color:var(--warn);">🎲 NO WINNERS!</span><br>Pool +${carryoverPool.toFixed(3)} INJ → Next Race`;
+    
+    if(myStakeThisRace){
+      myHistory.unshift({race:raceNumber, result:'lose', car:myStakeThisRace.cars[0], staked:myStakeThisRace.amount, won:0});
+    }
+  }
+  renderHistory();
+}
+
+function showPayoutToast(message){
+  const existing = document.getElementById('payoutToast');
+  if(existing) existing.remove();
+  const toast = document.createElement('div');
+  toast.id = 'payoutToast';
+  toast.style.cssText = `position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:#0a1a12;border:2px solid var(--accent);color:var(--accent);padding:1rem 2rem;border-radius:8px;font-family:'Orbitron',sans-serif;font-size:.9rem;font-weight:700;z-index:9999;text-align:center;letter-spacing:1px;animation:toastIn .3s ease;`;
+  toast.textContent = message;
+  if(!document.getElementById('toastStyle')){
+    const s = document.createElement('style');
+    s.id = 'toastStyle';
+    s.textContent = `@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(20px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}`;
+    document.head.appendChild(s);
+  }
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 5000);
+}
+
+function hideWinnerOverlay(){
+  const ov = document.getElementById('winnerOverlay');
+  ov.classList.remove('show');
+  document.getElementById('confettiContainer').innerHTML = '';
+}
+
+function calculatePayout(entry, winnerCount, totalPoolAmount){
+  const carMultiplier = entry.cars.length === 1 ? 1 : entry.cars.length === 2 ? 0.5 : 0.33;
+  const share = (totalPoolAmount * 0.99) / winnerCount * carMultiplier;
+  return share;
+}
+
+function spawnConfetti(){
+  const container = document.getElementById('confettiContainer');
+  container.innerHTML = '';
+  for(let i=0;i<40;i++){
+    const el = document.createElement('div');
+    const colors = ['#00f5a0','#00b4ff','#ff6b35','#ffd700','#c084fc','#fff'];
+    el.style.cssText = `position:absolute;width:${4+Math.random()*6}px; height:${4+Math.random()*6}px;background:${colors[Math.floor(Math.random()*colors.length)]};left:${Math.random()*100}%;top:-10px;border-radius:${Math.random()>.5?'50%':'2px'};animation:confettiFall ${1+Math.random()*2}s ease ${Math.random()*.5}s forwards;`;
+    container.appendChild(el);
+  }
+  if(!document.getElementById('confettiStyle')){
+    const s = document.createElement('style');
+    s.id = 'confettiStyle';
+    s.textContent = `@keyframes confettiFall{to{top:110%;transform:rotate(${Math.random()*720}deg) translateX(${(Math.random()-.5)*100}px);opacity:0;}}`;
+    document.head.appendChild(s);
+  }
+}
+
+function toggleCar(n){
+  if(phase !== 'staking') return;
+  if(myStakeThisRace) return;
+  selectedCars = selectedCars[0] === n ? [] : [n];
+  renderCarOdds();
+}
+
+function renderCarOdds(){
+  for(let i=1;i<=5;i++){
+    const el = document.querySelector(`.car-odd[data-car="${i}"]`);
+    const sel = document.getElementById(`sel${i}`);
+    if(selectedCars[0] === i){
+      el.classList.add('selected');
+      sel.textContent = '✓ PICKED';
+      sel.style.color = CAR_COLORS[i-1];
+    } else {
+      el.classList.remove('selected');
+      sel.textContent = '';
+    }
+    const carStakes = stakeEntries.filter(e=>e.cars.includes(i)).reduce((s,e)=>s+e.amount,0);
+    const pct = poolTotal > 0 ? Math.round(carStakes/poolTotal*100) : 0;
+    document.getElementById(`odds${i}`).textContent = pct + '%';
+  }
+}
+
+function setStake(val){ document.getElementById('stakeAmount').value = val; }
+
+function requireWallet() {
+  const wallet = window.PumpWallet;
+  if (!wallet || !wallet.address) {
+    showWalletRequired();
+    return false;
+  }
+  const bal = wallet.balance;
+  if (bal !== null && bal !== undefined && parseFloat(bal) <= 0) {
+    showWalletRequired();
+    return false;
+  }
+  return true;
+}
+function showWalletRequired() {
+  document.getElementById('walletRequiredModal').style.display = 'flex';
+}
+
+function placeStake(){
+  if (!requireWallet()) return;
+  if(phase !== 'staking') return;
+  if(myStakeThisRace){ return; }
+  if(selectedCars.length === 0){ alert('Select a car first!'); return; }
+  const amount = parseFloat(document.getElementById('stakeAmount').value);
+  if(!amount || amount <= 0){ alert('Enter a valid amount'); return; }
+
+  const addr = window.PumpWallet?.address || null;
+  const displayAddr = addr ? addr.slice(0,6)+'...'+addr.slice(-4) : 'Demo Player';
+  const carNum = selectedCars[0];
+
+  if(addr && typeof onPlayerStake === 'function'){
+    onPlayerStake(carNum, amount, (result) => {
+      if(!result.success) return;
+      const entry = {
+        addr: displayAddr,
+        cars: [carNum],
+        amount,
+        onChain: !result.demo,
+        txHash: result.txHash || null,
+        time: new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'})
+      };
+      myStakeThisRace = entry;
+      addStakeEntry(entry);
+      document.getElementById('myStakeDisplay').textContent = `${amount} INJ on Car ${carNum}${result.demo ? ' (demo)' : ' ✓ on-chain'}`;
+      document.getElementById('stakeBtn').disabled = true;
+      document.getElementById('stakeBtn').textContent = result.demo ? '✓ STAKED (DEMO)' : '✓ ON-CHAIN ✓';
+      document.getElementById('carOdds').style.pointerEvents = 'none';
+    });
+  } else {
+    const entry = {
+      addr: displayAddr, cars: [carNum], amount, onChain: false,
+      time: new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'})
+    };
+    myStakeThisRace = entry;
+    addStakeEntry(entry);
+    document.getElementById('myStakeDisplay').textContent = `${amount} INJ on Car ${carNum} (demo)`;
+    document.getElementById('stakeBtn').disabled = true;
+    document.getElementById('stakeBtn').textContent = '✓ STAKED (DEMO)';
+    document.getElementById('carOdds').style.pointerEvents = 'none';
+  }
+}
+
+function addStakeEntry(entry){
+  stakeEntries.push(entry);
+  poolTotal += entry.amount;
+  poolPlayers++;
+  updatePoolDisplay();
+  renderFeedItem(entry);
+  renderCarOdds();
+}
+
+function updatePoolDisplay(){
+  document.getElementById('poolTotal').textContent = poolTotal.toFixed(3)+' INJ';
+  document.getElementById('poolPlayers').textContent = poolPlayers;
+  document.getElementById('feedPoolTotal').textContent = poolTotal.toFixed(3)+' INJ';
+}
+
+// ✅ ======== DEMO BOT CODE REMOVED ========  
+// startSimulatedStakes() and stopSimulatedStakes() functions DELETED
+// No more auto-demo players in real game!
+// ✅ =========================================
+
+function renderFeedItem(entry){
+  const list = document.getElementById('feedList');
+  const div = document.createElement('div');
+  div.className = 'feed-item';
+  const carDots = entry.cars.map(c=>`<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${CAR_COLORS[c-1]};margin-right:2px;"></span>`).join('');
+  const isReal = entry.addr.startsWith('inj1');
+  const shortAddr = isReal ? entry.addr.slice(0,7)+'...'+entry.addr.slice(-5) : entry.addr;
+  const explorerIcon = isReal
+    ? `<a href="https://testnet.explorer.injective.network/account/${entry.addr}" target="_blank" rel="noopener" title="View on Injective Explorer" style="color:#00b4ff;text-decoration:none;font-size:.8rem;opacity:.85;margin-left:.3rem;">↗</a>`
+    : '';
+  div.innerHTML = `<div class="feed-car-dot" style="background:${CAR_COLORS[entry.cars[0]-1]}"></div><div style="flex:1"><div class="feed-addr">${shortAddr}</div><div class="feed-car-tag">${carDots} Car ${entry.cars.join(', ')}</div></div><div style="text-align:right"><div class="feed-amount" style="color:var(--accent)">+${entry.amount.toFixed(2)} INJ${explorerIcon}</div><div class="feed-time">${entry.time}</div></div>`;
+  list.insertBefore(div, list.firstChild);
+  if(list.children.length > 60) list.removeChild(list.lastChild);
+}
+
+function clearFeed(){ document.getElementById('feedList').innerHTML = ''; }
+
+function processPayouts(){
+  const winners = stakeEntries.filter(e=>e.cars.includes(raceWinner+1));
+  const totalPoolAmount = poolTotal + carryoverPool;
+  winners.forEach(w => {
+    if(!leaderboard[w.addr]) leaderboard[w.addr] = {won:0, races:0};
+    leaderboard[w.addr].won += calculatePayout(w, winners.length, totalPoolAmount);
+    leaderboard[w.addr].races++;
+  });
+}
+
+function updateLeaderboard(){
+  const list = document.getElementById('leaderboardList');
+  list.innerHTML = '';
+  const sorted = Object.entries(leaderboard).sort((a,b)=>b[1].won-a[1].won).slice(0,15);
+  if(sorted.length === 0){
+    list.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--muted);font-size:.85rem;">No winners yet</div>';
+    return;
+  }
+
+  sorted.forEach(([addr, data], idx) => {
+    const rankColors = ['gold','silver','bronze'];
+    const div = document.createElement('div');
+    div.className = 'lb-item';
+
+    const isRealAddr = addr.startsWith('inj1');
+    const shortAddr = isRealAddr ? addr.slice(0,7)+'...'+addr.slice(-5) : addr;
+    const explorerIcon = isRealAddr
+      ? `<a href="${EXPLORER}/${addr}" target="_blank" rel="noopener" title="View on Injective Explorer" style="color:#00b4ff;text-decoration:none;font-size:.8rem;opacity:.85;margin-left:.3rem;">↗</a>`
+      : '';
+
+    div.innerHTML = `<div class="lb-rank ${rankColors[idx]||''}">${idx+1}</div><div style="flex:1"><div class="lb-addr">${shortAddr}</div><div class="lb-races">${data.races} win${data.races!==1?'s':''}</div></div><div style="text-align:right"><div class="lb-won">+${data.won.toFixed(3)} INJ${explorerIcon}</div></div>`;
+    list.appendChild(div);
+  });
+}
+
+function renderHistory(){
+  const list = document.getElementById('historyList');
+  list.innerHTML = '';
+  if(myHistory.length === 0){
+    list.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--muted);font-size:.85rem;">No races yet</div>';
+    return;
+  }
+  myHistory.slice(0,20).forEach(h => {
+    const div = document.createElement('div');
+    div.className = 'hist-item';
+    div.innerHTML = `<div class="hist-badge ${h.result}">${h.result.toUpperCase()}</div><div class="hist-car" style="background:${CAR_COLORS[h.car-1]}"></div><div class="hist-info"><div class="hist-race">Race #${h.race} · Car ${h.car}</div><div class="hist-detail">Staked ${h.staked.toFixed(2)} INJ</div></div><div class="hist-amount" style="color:${h.result==='win'?'var(--accent)':'var(--warn)'}">  ${h.result==='win' ? '+'+h.won.toFixed(3) : '-'+h.staked.toFixed(2)} INJ</div>`;
+    list.appendChild(div);
+  });
+}
+
+function switchTab(name, btn){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(`tab-${name}`).classList.add('active');
+}
+
+function idleLoop(){
+  if(phase === 'staking' || phase === 'payout'){
+    drawIdleTrack();
+    animFrame = requestAnimationFrame(idleLoop);
+  }
+}
+
+cars.forEach((c,i) => { c.x = 60; c.y = 0; c.wobble = Math.random()*Math.PI*2; });
+renderHistory();
+animFrame = requestAnimationFrame(idleLoop);
+startStaking();
+</script>
+</body>
+</html>

@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PoolParty Practice — Loading...</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&family=Orbitron:wght@700;900&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#04060f;--surface:#0b0f1e;--surface2:#111827;
+  --border:#1c2340;--text:#e8eaf6;--muted:#5a6485;
+  --ac:#00f5a0; /* overridden per game */
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;}
+
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 1.5rem;height:56px;
+  background:rgba(4,6,15,.95);backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+}
+.logo{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800;
+  background:linear-gradient(90deg,var(--car,#00f5a0),var(--num,#a78bfa));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  text-decoration:none;}
+.nav-links{display:flex;gap:1.2rem;}
+.nav-links a{color:var(--muted);text-decoration:none;font-size:.8rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;transition:.2s;}
+.nav-links a:hover{color:var(--ac);}
+.nav-right{display:flex;align-items:center;gap:.8rem;}
+.wallet-bal{font-family:'Orbitron',sans-serif;font-size:.75rem;color:var(--ac);}
+#walletBtn{background:transparent;border:1px solid var(--ac);color:var(--ac);padding:.4rem 1rem;border-radius:4px;cursor:pointer;font-family:'Orbitron',sans-serif;font-size:.7rem;font-weight:700;letter-spacing:1px;transition:.2s;}
+#walletBtn:hover,#walletBtn.connected{background:var(--ac);color:#000;}
+
+.app{display:grid;grid-template-columns:1fr 310px;gap:0;height:calc(100vh - 56px);margin-top:56px;}
+@media(max-width:880px){.app{grid-template-columns:1fr;height:auto;}}
+
+/* MAIN */
+.main{display:flex;flex-direction:column;padding:.8rem;gap:.7rem;overflow-y:auto;}
+
+
+/* POOL ROW */
+.pool-row{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;}
+.pool-card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.6rem .8rem;}
+.pool-card-label{font-size:.62rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
+.pool-card-val{font-family:'Orbitron',sans-serif;font-size:.95rem;font-weight:700;color:var(--ac);margin-top:.15rem;}
+
+/* GAME VISUAL */
+.game-visual{
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  min-height:180px;display:flex;align-items:center;justify-content:center;
+  position:relative;overflow:visible;
+}
+.game-visual-inner{text-align:center;position:relative;z-index:1;}
+.visual-emoji{font-size:4rem;display:block;margin-bottom:.5rem;transition:.3s;}
+.visual-result{
+  font-family:'Orbitron',sans-serif;font-size:2rem;font-weight:900;color:var(--ac);
+  letter-spacing:2px;min-height:2.5rem;
+}
+.visual-sub{font-size:.75rem;color:var(--muted);margin-top:.3rem;letter-spacing:2px;text-transform:uppercase;}
+.visual-glow{
+  position:absolute;inset:0;
+  background:radial-gradient(circle at 50% 50%,var(--ac),transparent 70%);
+  opacity:0;transition:opacity .5s;pointer-events:none;
+}
+.visual-glow.active{opacity:.06;}
+
+/* Rolling animation */
+@keyframes rollSpin{0%{transform:rotateY(0);}100%{transform:rotateY(360deg);}}
+@keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-8px);}75%{transform:translateX(8px);}}
+.spin-anim{animation:rollSpin .3s linear infinite;}
+.shake-anim{animation:shake .15s linear infinite;}
+.bounce-anim{animation:bounce .4s ease infinite alternate;}
+@keyframes bounce{from{transform:translateY(0);}to{transform:translateY(-10px);}}
+
+/* OPTIONS */
+.options-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:.4rem;}
+.opt{
+  background:var(--surface);border:2px solid var(--border);border-radius:8px;
+  padding:.6rem .3rem;text-align:center;cursor:pointer;transition:.15s;user-select:none;
+}
+.opt:hover{border-color:var(--ac);background:rgba(255,255,255,.04);}
+.opt.selected{border-color:var(--ac);background:rgba(255,255,255,.08);transform:translateY(-2px);}
+.opt-icon{font-size:1.2rem;display:block;margin-bottom:.2rem;}
+.opt-name{font-family:'Orbitron',sans-serif;font-size:.62rem;font-weight:700;color:var(--text);}
+.opt.selected .opt-name{color:var(--ac);}
+.opt-pct{font-size:.58rem;color:var(--muted);margin-top:.15rem;}
+.opt.selected .opt-pct{color:var(--ac);opacity:.8;}
+
+/* STAKE */
+.stake-row{display:flex;gap:.6rem;align-items:flex-end;}
+.stake-wrap{flex:1;}
+.stake-label{font-size:.7rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:.3rem;}
+.stake-box{display:flex;align-items:center;gap:.4rem;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.55rem .8rem;}
+.stake-box input{background:none;border:none;outline:none;color:var(--text);font-family:'Orbitron',sans-serif;font-size:.95rem;font-weight:700;flex:1;width:0;}
+.stake-denom{font-family:'Orbitron',sans-serif;font-size:.65rem;color:var(--muted);}
+.quick{display:flex;gap:.3rem;margin-top:.3rem;}
+.qbtn{background:var(--surface2);border:1px solid var(--border);color:var(--muted);padding:.25rem .5rem;border-radius:4px;cursor:pointer;font-size:.7rem;font-family:'Orbitron',sans-serif;transition:.2s;}
+.qbtn:hover{border-color:var(--ac);color:var(--ac);}
+#stakeBtn{padding:.6rem 1.4rem;background:var(--ac);color:#000;border:none;border-radius:6px;cursor:pointer;font-family:'Orbitron',sans-serif;font-size:.8rem;font-weight:700;letter-spacing:1px;transition:.2s;white-space:nowrap;}
+#stakeBtn:hover{opacity:.85;}
+#stakeBtn:disabled{background:var(--muted);color:rgba(0,0,0,.5);cursor:not-allowed;}
+
+/* WINNER OVERLAY */
+#winnerOverlay{
+  display:none;position:absolute;inset:0;z-index:10;
+  background:rgba(4,6,15,.88);backdrop-filter:blur(6px);
+  flex-direction:column;align-items:center;justify-content:center;gap:.6rem;
+  border-radius:10px;
+}
+#winnerOverlay.show{display:flex;animation:wfIn .3s ease;}
+@keyframes wfIn{from{opacity:0;transform:scale(.95);}to{opacity:1;transform:scale(1);}}
+.wf-big{font-size:3rem;}
+.wf-title{font-family:'Orbitron',sans-serif;font-size:1.3rem;font-weight:900;}
+.wf-sub{font-family:'DM Sans',sans-serif;font-size:.85rem;color:var(--muted);letter-spacing:2px;}
+.wf-top{background:rgba(255,215,0,.1);border:1px solid rgba(255,215,0,.3);border-radius:6px;padding:.5rem 1.2rem;text-align:center;}
+.wf-top-label{font-size:.65rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;}
+.wf-top-val{font-family:'Orbitron',sans-serif;font-size:1rem;font-weight:700;color:#ffd700;}
+.confetti-box{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+
+/* SIDEBAR */
+.sidebar{border-left:1px solid var(--border);background:var(--surface);display:flex;flex-direction:column;overflow:hidden;}
+.sidebar-tabs{display:flex;border-bottom:1px solid var(--border);}
+.stab{flex:1;padding:.65rem;text-align:center;cursor:pointer;font-family:'Orbitron',sans-serif;font-size:.6rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);border:none;background:none;border-bottom:2px solid transparent;transition:.2s;}
+.stab.active{color:var(--ac);border-bottom-color:var(--ac);}
+.tab-pane{display:none;flex:1;overflow-y:auto;flex-direction:column;}
+.tab-pane.active{display:flex;}
+.feed-header{padding:.7rem 1rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.feed-title{font-family:'Orbitron',sans-serif;font-size:.65rem;color:var(--muted);letter-spacing:1px;}
+.feed-pool{font-family:'Orbitron',sans-serif;font-size:.85rem;font-weight:700;color:var(--ac);}
+.feed-list{flex:1;overflow-y:auto;padding:.4rem;}
+.feed-item{display:flex;align-items:center;gap:.5rem;padding:.45rem .5rem;border-bottom:1px solid rgba(255,255,255,.03);animation:slideIn .3s ease;}
+@keyframes slideIn{from{opacity:0;transform:translateX(15px);}to{opacity:1;transform:translateX(0);}}
+.feed-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.feed-addr{font-family:'Orbitron',sans-serif;font-size:.65rem;color:var(--muted);flex:1;}
+.feed-tag{font-size:.6rem;color:var(--muted);}
+.feed-amt{font-family:'Orbitron',sans-serif;font-size:.7rem;font-weight:700;color:var(--ac);}
+.feed-time{font-size:.6rem;color:rgba(90,100,133,.5);}
+.lb-item{display:flex;align-items:center;gap:.6rem;padding:.6rem 1rem;border-bottom:1px solid rgba(255,255,255,.03);}
+.lb-rank{font-family:'Orbitron',sans-serif;font-size:.8rem;font-weight:700;width:20px;}
+.lb-rank.g{color:#ffd700;}.lb-rank.s{color:#c0c0c0;}.lb-rank.b{color:#cd7f32;}
+.hist-item{display:flex;align-items:center;gap:.5rem;padding:.5rem .9rem;border-bottom:1px solid rgba(255,255,255,.03);}
+.hist-badge{font-size:.6rem;font-weight:700;padding:.15rem .4rem;border-radius:3px;font-family:'Orbitron',sans-serif;letter-spacing:1px;}
+.hist-badge.win{background:rgba(0,245,160,.12);color:var(--ac);}
+.hist-badge.lose{background:rgba(255,107,53,.1);color:#ff6b35;}
+.hist-info{flex:1;}
+.hist-r{font-family:'Orbitron',sans-serif;font-size:.65rem;color:var(--text);}
+.hist-d{font-size:.6rem;color:var(--muted);}
+.hist-amt{font-family:'Orbitron',sans-serif;font-size:.7rem;font-weight:700;}
+
+#noWalletModal{display:none;position:fixed;inset:0;z-index:999;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);align-items:center;justify-content:center;}
+.modal-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:2rem;text-align:center;max-width:340px;width:90%;}
+.modal-box h3{font-family:'Orbitron',sans-serif;color:var(--ac);margin-bottom:.8rem;}
+.modal-box p{color:var(--muted);font-size:.85rem;margin-bottom:1.2rem;line-height:1.5;}
+.modal-btns{display:flex;flex-direction:column;gap:.6rem;}
+.modal-btns a{display:block;padding:.65rem;border-radius:5px;text-decoration:none;font-family:'Orbitron',sans-serif;font-size:.75rem;font-weight:700;}
+.modal-btns a.k{background:#00f5a0;color:#000;}
+.modal-btns a.l{background:#a78bfa;color:#000;}
+#closeNoWallet{background:none;border:1px solid var(--border);color:var(--muted);padding:.45rem .9rem;border-radius:4px;cursor:pointer;margin-top:.3rem;font-size:.8rem;}
+
+/* OUTCOMES BAR */
+.outcomes-wrap{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:.5rem .8rem;}
+.outcomes-label{font-family:'Orbitron',sans-serif;font-size:.58rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:.4rem;}
+.outcomes-bar{display:flex;gap:.3rem;flex-wrap:nowrap;overflow:hidden;}
+.outcome-pill{
+  flex-shrink:0;min-width:36px;padding:.25rem .4rem;border-radius:4px;
+  font-family:'Orbitron',sans-serif;font-size:.6rem;font-weight:700;
+  text-align:center;color:#000;white-space:nowrap;
+  animation:pillIn .25s ease;
+}
+@keyframes pillIn{from{opacity:0;transform:scale(.6);}to{opacity:1;transform:scale(1);}}
+
+
+
+
+/* Push app content down to account for fixed nav (56px) + fixed banner (~44px) */
+@media(max-width:880px){}
+
+
+/* ── LAYOUT & TIMER ─────────────────────────────────────────────────── */
+#phaseBanner{
+  position:fixed;
+  top:56px;left:0;right:0;z-index:90;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:.6rem 1rem;
+  border-bottom:1px solid;
+  background:rgba(4,6,15,.97);
+  transition:background .4s,border-color .4s;
+}
+#phaseBanner.staking{border-color:rgba(0,245,160,.25);background:rgba(4,6,15,.97);}
+#phaseBanner.locked{border-color:rgba(255,107,53,.5);background:rgba(255,107,53,.06);animation:lp .5s ease-in-out infinite alternate;}
+#phaseBanner.spinning,#phaseBanner.result{border-color:rgba(0,180,255,.3);background:rgba(0,180,255,.04);}
+#phaseBanner.payout{border-color:rgba(255,215,0,.4);background:rgba(255,215,0,.04);}
+.phase-timer{font-family:'Orbitron',sans-serif;font-size:1.8rem;font-weight:900;color:var(--ac);min-width:55px;text-align:right;flex-shrink:0;}
+.phase-label{font-family:'Orbitron',sans-serif;font-size:.7rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;}
+#phaseBanner.locked .phase-label{color:#ff6b35;}
+#phaseBanner.payout .phase-label{color:#ffd700;}
+.phase-info{font-size:.72rem;color:var(--muted);}
+.app{margin-top:100px;height:calc(100vh - 100px);}
+@media(max-width:880px){.app{height:auto;}}
+/* NAV mobile */
+@media(max-width:600px){
+  .nav-links,.nav-center{display:none !important;}
+  .wallet-bal{display:none !important;}
+  nav{padding:0 .7rem;}
+  #walletBtn{padding:.3rem .6rem;font-size:.62rem;}
+  .pool-row{grid-template-columns:repeat(2,1fr) !important;}
+  .stake-row{flex-direction:column;}
+  #stakeBtn{width:100%;}
+  .sidebar{border-left:none;border-top:1px solid var(--border);max-height:280px;}
+  .app{grid-template-columns:1fr !important;}
+}
+/* Winner overlay fullscreen on mobile */
+@media(max-width:880px){
+  #winnerOverlay,.winner-overlay{
+    position:fixed !important;top:100px !important;
+    left:0 !important;right:0 !important;bottom:0 !important;
+    border-radius:0 !important;z-index:999 !important;
+  }
+}
+</style>
+</head>
+<body>
+<nav>
+  <a href="index.html" class="logo">PoolParty</a>
+  <div class="nav-links">
+    <a href="index.html">All Games</a>
+    <a href="#" id="simLink">Practice</a>
+  </div>
+  <div class="nav-right">
+    <span class="wallet-bal" id="walletBalance"></span>
+    <button id="walletBtn">Connect Wallet</button>
+  </div>
+</nav>
+
+<div style="background:rgba(251,191,36,.08);border-bottom:1px solid rgba(251,191,36,.25);padding:.5rem 1.5rem;display:flex;align-items:center;justify-content:space-between;">
+  <span style="font-family:Orbitron,monospace;font-size:.7rem;color:#fbbf24;letter-spacing:2px;">&#127601; PRACTICE MODE</span>
+  <div style="display:flex;align-items:center;gap:.8rem;">
+    <span style="font-family:Orbitron,monospace;font-size:.8rem;color:#fbbf24;">FAKE INJ: <span id="fakeBal">100.00</span></span>
+    <button onclick="refill()" style="background:transparent;border:1px solid #fbbf24;color:#fbbf24;padding:.25rem .6rem;border-radius:4px;cursor:pointer;font-family:Orbitron,monospace;font-size:.65rem;font-weight:700;">&#8635; REFILL</button>
+    <a href="game-pool.html" style="background:#00f5a0;color:#000;padding:.3rem .8rem;border-radius:4px;font-family:Orbitron,monospace;font-size:.65rem;font-weight:700;text-decoration:none;">PLAY REAL &#8594;</a>
+  </div>
+</div>
+<div class="app">
+  <div class="main">
+
+    <div class="phase-banner staking" id="phaseBanner">
+      <div>
+        <div class="phase-label" id="phaseLabel">⏳ STAKING OPEN</div>
+        <div class="phase-info" id="phaseInfo">Pick your option and stake INJ</div>
+      </div>
+      <div class="phase-timer" id="phaseTimer">30</div>
+    </div>
+
+    <div class="pool-row">
+      <div class="pool-card"><div class="pool-card-label">Pool</div><div class="pool-card-val" id="poolTotal">0.000 INJ</div></div>
+      <div class="pool-card"><div class="pool-card-label">Players</div><div class="pool-card-val" id="poolPlayers">0</div></div>
+      <div class="pool-card"><div class="pool-card-label">Round</div><div class="pool-card-val" id="roundNum">#1</div></div>
+      <div class="pool-card"><div class="pool-card-label">My Stake</div><div class="pool-card-val" id="myStake">—</div></div>
+    </div>
+
+    <div class="game-visual" id="gameVisual">
+      <div class="visual-glow" id="visualGlow"></div>
+      <div class="confetti-box" id="confettiBox"></div>
+      <div id="winnerOverlay">
+        <div class="wf-big" id="wfEmoji">🎉</div>
+        <div class="wf-title" id="wfTitle">WINS!</div>
+        <div class="wf-sub">PAYOUTS SENT · NEXT ROUND OPEN</div>
+        <div class="wf-top"><div class="wf-top-label">Biggest Win</div><div class="wf-top-val" id="wfTopVal">—</div></div>
+      </div>
+      <div class="game-visual-inner" id="visualInner">
+        <span class="visual-emoji" id="visualEmoji">🎮</span>
+        <div class="visual-result" id="visualResult">WAITING...</div>
+        <div class="visual-sub" id="visualSub">Place your stake</div>
+      </div>
+    </div>
+
+    <div class="options-grid" id="optionsGrid"></div>
+
+    <div class="stake-row">
+      <div class="stake-wrap">
+        <div class="stake-label">Stake Amount</div>
+        <div class="stake-box">
+          <input type="number" id="stakeAmount" value="0.1" min="0.01" step="0.01"/>
+          <span class="stake-denom">INJ</span>
+        </div>
+        <div class="quick">
+          <button class="qbtn" onclick="qs(0.1)">0.1</button>
+          <button class="qbtn" onclick="qs(0.5)">0.5</button>
+          <button class="qbtn" onclick="qs(1)">1</button>
+          <button class="qbtn" onclick="qs(5)">5</button>
+          <button class="qbtn" onclick="qs(10)">10</button>
+        </div>
+      </div>
+      <button id="stakeBtn" onclick="placeStake()">STAKE INJ</button>
+    </div>
+
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-tabs">
+      <button class="stab active" onclick="switchTab('feed',this)">Live Stakes</button>
+      <button class="stab" onclick="switchTab('leaderboard',this)">Leaderboard</button>
+      <button class="stab" onclick="switchTab('history',this)">My History</button>
+    </div>
+    <div class="tab-pane active" id="tab-feed">
+      <div class="feed-header"><span class="feed-title">LIVE POOL FEED</span><span class="feed-pool" id="feedPool">0.000 INJ</span></div>
+      <div class="feed-list" id="feedList"></div>
+    </div>
+    <div class="tab-pane" id="tab-leaderboard">
+      <div class="feed-header"><span class="feed-title">LEADERBOARD</span><span style="font-family:Orbitron,sans-serif;font-size:.7rem;color:var(--muted);">ALL-TIME</span></div>
+      <div id="lbList"></div>
+    </div>
+    <div class="tab-pane" id="tab-history">
+      <div class="feed-header"><span class="feed-title">MY HISTORY</span></div>
+      <div id="histList"></div>
+    </div>
+  </div>
+</div>
+
+<div id="noWalletModal">
+  <div class="modal-box">
+    <h3>Wallet Required</h3>
+    <p>Connect Keplr or Leap to stake real INJ.</p>
+    <div class="modal-btns">
+      <a href="https://www.keplr.app/download" target="_blank" class="k">Install Keplr</a>
+      <a href="https://www.leapwallet.io/download" target="_blank" class="l">Install Leap</a>
+    </div>
+    <button id="closeNoWallet">Maybe Later</button>
+  </div>
+</div>
+
+<script src="wallet.js"></script>
+<script>
+const EXPLORER = 'https://testnet.explorer.injective.network/account';
+const EXPLORER_BASE = EXPLORER;
+
+// ─── GAME CONFIGS ────────────────────────────────────────────────────────────
+const GAME_CONFIGS = {
+  num: {
+    name:'Number Rush', emoji:'🔢', color:'#a78bfa', simLink:'simulate-num.html',
+    opts:[
+      {icon:'1️⃣',label:'ONE'},  {icon:'2️⃣',label:'TWO'},  {icon:'3️⃣',label:'THREE'},
+      {icon:'4️⃣',label:'FOUR'},{icon:'5️⃣',label:'FIVE'}
+    ],
+    resultEmojis:['1️⃣','2️⃣','3️⃣','4️⃣','5️⃣'],
+    animClass:'spin-anim',
+    getVisual:(w)=>`${['1️⃣','2️⃣','3️⃣','4️⃣','5️⃣'][w-1]}`,
+    getLabel:(w)=>['ONE','TWO','THREE','FOUR','FIVE'][w-1],
+  },
+  spin: {
+    name:'Spin Zone', emoji:'🎰', color:'#fb923c', simLink:'simulate-spin.html',
+    opts:[
+      {icon:'🔴',label:'RED'}, {icon:'🔵',label:'BLUE'},{icon:'🟢',label:'GREEN'},
+      {icon:'🟡',label:'GOLD'},{icon:'🟣',label:'PURP'}
+    ],
+    resultEmojis:['🔴','🔵','🟢','🟡','🟣'],
+    animClass:'bounce-anim',
+    getVisual:(w)=>`${['🔴','🔵','🟢','🟡','🟣'][w-1]}`,
+    getLabel:(w)=>['RED','BLUE','GREEN','GOLD','PURPLE'][w-1],
+  },
+  dice: {
+    name:'Chain Dice', emoji:'🎲', color:'#fbbf24', simLink:'simulate-dice.html',
+    opts:[
+      {icon:'⬇️',label:'LOW'},{icon:'↔️',label:'MID'},{icon:'⬆️',label:'HIGH'},
+      {icon:'🍀',label:'LUCKY'},{icon:'💥',label:'WILD'}
+    ],
+    resultEmojis:['⬇️','↔️','⬆️','🍀','💥'],
+    animClass:'shake-anim',
+    getVisual:(w)=>`${['⬇️','↔️','⬆️','🍀','💥'][w-1]}`,
+    getLabel:(w)=>['LOW','MID','HIGH','LUCKY','WILD'][w-1],
+  },
+  moon: {
+    name:'Moon Flip', emoji:'🌙', color:'#f472b6', simLink:'simulate-moon.html',
+    opts:[
+      {icon:'🐂',label:'BULL'},{icon:'🐻',label:'BEAR'},{icon:'🦀',label:'CRAB'},
+      {icon:'🚀',label:'MOON'},{icon:'💀',label:'REKT'}
+    ],
+    resultEmojis:['🐂','🐻','🦀','🚀','💀'],
+    animClass:'bounce-anim',
+    getVisual:(w)=>`${['🐂','🐻','🦀','🚀','💀'][w-1]}`,
+    getLabel:(w)=>['BULL','BEAR','CRAB','MOON','REKT'][w-1],
+  }
+};
+
+// ─── GET GAME TYPE FROM URL ───────────────────────────────────────────────────
+const urlParams = new URLSearchParams(window.location.search);
+const gameType = urlParams.get('g') || 'num';
+const G = GAME_CONFIGS[gameType] || GAME_CONFIGS.num;
+
+// Apply theme color
+document.documentElement.style.setProperty('--ac', G.color);
+document.title = `PoolParty — ${G.name}`;
+document.getElementById('simLink').href = G.simLink;
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+const STAKING_MS=30000, LOCK_MS=5000, RESULT_MS=10000, WINNER_MS=5000;
+let phase='staking', phaseInterval, phaseCountdown, botInterval, animFrame;
+let poolTotal=0, poolPlayers=0, roundNum=1, selectedOpt=null, myStake=null;
+let stakeEntries=[], stakes={1:0,2:0,3:0,4:0,5:0}, raceWinner=-1;
+let myHistory=[];
+
+// ─── BUILD OPTIONS ────────────────────────────────────────────────────────────
+const grid = document.getElementById('optionsGrid');
+  grid.style.gridTemplateColumns = 'repeat('+G.opts.length+',1fr)';
+G.opts.forEach((o,i) => {
+  const d = document.createElement('div');
+  d.className = 'opt'; d.dataset.v = i+1;
+  d.innerHTML = `<span class="opt-icon">${o.icon}</span><div class="opt-name">${o.label}</div><div class="opt-pct" id="pct-${i+1}">0%</div>`;
+  d.onclick = () => selectOpt(i+1, d);
+  grid.appendChild(d);
+});
+
+// Visual setup
+document.getElementById('visualEmoji').textContent = G.emoji;
+document.getElementById('visualResult').textContent = G.name.toUpperCase();
+document.getElementById('visualSub').textContent = 'Staking open — pick your option';
+
+// ─── PHASE MACHINE ────────────────────────────────────────────────────────────
+
+// ── OUTCOMES BAR ──────────────────────────────────────────────────────────────
+let recentOutcomes = [];
+function addOutcome(label, color) {
+  recentOutcomes.push({ label, color });
+  if (recentOutcomes.length > 20) recentOutcomes.shift();
+  renderOutcomes();
+}
+function renderOutcomes() {
+  const bar = document.getElementById('outcomesBar');
+  if (!bar) return;
+  bar.innerHTML = '';
+  recentOutcomes.forEach(o => {
+    const p = document.createElement('div');
+    p.className = 'outcome-pill';
+    p.style.background = o.color;
+    p.style.color = isLight(o.color) ? '#000' : '#fff';
+    p.textContent = o.label.slice(0,4);
+    bar.appendChild(p);
+  });
+}
+function isLight(hex) {
+  if(!hex||hex[0]!=='#') return false;
+  const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  return (r*299+g*587+b*114)/1000>128;
+}
+
+
+// ── TIMER FORMATTER ──────────────────────────────────────────────────────────
+function formatTimer(ms) {
+  if (ms <= 0) return '0';
+  const totalSecs = Math.ceil(ms / 1000);
+  if (totalSecs < 60) return String(totalSecs);
+  const h = Math.floor(totalSecs / 3600);
+  const m = Math.floor((totalSecs % 3600) / 60);
+  const s = totalSecs % 60;
+  if (h > 0) return h + 'h ' + String(m).padStart(2,'0') + 'm';
+  return String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+}
+
+function startStaking(){
+  phase='staking'; stakeEntries=[]; stakes={1:0,2:0,3:0,4:0,5:0};
+  poolTotal=0; poolPlayers=0; selectedOpt=null; myStake=null;
+  updateBanner('staking','⏳ STAKING OPEN','Pick your option and stake INJ');
+  document.getElementById('stakeBtn').disabled=false;
+  document.getElementById('stakeBtn').textContent='PRACTICE STAKE';
+  document.getElementById('optionsGrid').style.pointerEvents='auto';
+  document.querySelectorAll('.opt').forEach(o=>o.classList.remove('selected'));
+  document.getElementById('myStake').textContent='—';
+  document.getElementById('feedList').innerHTML='';
+  updatePool();
+  hideWinner();
+  startBots();
+  // Visual reset
+  document.getElementById('visualEmoji').textContent=G.emoji;
+  document.getElementById('visualResult').textContent='STAKING...';
+  document.getElementById('visualSub').textContent=`Round #${roundNum+1}`;
+  document.getElementById('visualGlow').classList.remove('active');
+
+  startCountdown(STAKING_MS, rem=>{
+    const s=Math.ceil(rem/1000);
+    document.getElementById('phaseTimer').textContent=s;
+    if(s<=5&&s>0&&phase==='staking') transitionLocked(s);
+  }, startResult);
+}
+
+function transitionLocked(s){
+  if(phase==='locked') return;
+  phase='locked'; clearInterval(phaseInterval); stopBots();
+  document.getElementById('stakeBtn').disabled=true;
+  document.getElementById('stakeBtn').textContent='🔒 LOCKED';
+  document.getElementById('optionsGrid').style.pointerEvents='none';
+  updateBanner('locked','🔒 BOOKING CLOSED','Race starting in 30 seconds...');
+  let n=s;
+  phaseCountdown=setInterval(()=>{n--;document.getElementById('phaseTimer').textContent=n;if(n<=0){clearInterval(phaseCountdown);startResult();}},1000);
+}
+
+function startResult(){
+  if(phase==='result') return;
+  phase='result';
+  raceWinner=Math.floor(Math.random()*5)+1;
+  updateBanner('result','🎮 IN PROGRESS','Determining winner...');
+
+  // Animate visual
+  const emojiEl=document.getElementById('visualEmoji');
+  const resultEl=document.getElementById('visualResult');
+  const subEl=document.getElementById('visualSub');
+  emojiEl.classList.add(G.animClass);
+  resultEl.textContent='...';
+  subEl.textContent='Rolling...';
+
+  let s=Math.ceil(RESULT_MS/1000);
+  document.getElementById('phaseTimer').textContent=s;
+  phaseCountdown=setInterval(()=>{
+    s--; document.getElementById('phaseTimer').textContent=Math.max(s,0);
+    if(s<=0){clearInterval(phaseCountdown); revealWinner();}
+  },1000);
+}
+
+function revealWinner(){
+  phase='payout';
+  addOutcome(G.getLabel(raceWinner), G.color);
+  const emojiEl=document.getElementById('visualEmoji');
+  emojiEl.classList.remove(G.animClass);
+  emojiEl.textContent=G.getVisual(raceWinner);
+  document.getElementById('visualResult').textContent=G.getLabel(raceWinner)+' WINS!';
+  document.getElementById('visualSub').textContent='Paying out winners...';
+  document.getElementById('visualGlow').classList.add('active');
+  showWinner();
+
+  let n=Math.ceil(WINNER_MS/1000);
+  document.getElementById('phaseTimer').textContent=n;
+  updateBanner('payout',`🏆 ${G.getLabel(raceWinner)} WINS!`,`New round in ${n}s — stake now!`);
+  clearInterval(phaseCountdown);
+  phaseCountdown=setInterval(()=>{
+    n--; document.getElementById('phaseTimer').textContent=Math.max(n,0);
+    updateBanner('payout',`🏆 ${G.getLabel(raceWinner)} WINS!`,`New round in ${n}s — stake now!`);
+  },1000);
+  // Guaranteed restart via setTimeout — not affected by interval drift
+  setTimeout(()=>{
+    clearInterval(phaseCountdown);
+    roundNum++;
+    document.getElementById('roundNum').textContent=`#${roundNum}`;
+    startStaking();
+  }, WINNER_MS);
+}
+
+function startCountdown(dur,onTick,onDone){
+  const end=Date.now()+dur; clearInterval(phaseInterval);
+  phaseInterval=setInterval(()=>{const r=end-Date.now();if(r<=0){clearInterval(phaseInterval);onDone();}else onTick(r);},100);
+}
+
+function updateBanner(phaseClass,label,info){
+  const b=document.getElementById('phaseBanner');
+  b.className=`phase-banner ${phaseClass}`;
+  document.getElementById('phaseLabel').textContent=label;
+  document.getElementById('phaseInfo').textContent=info;
+}
+
+// ─── WINNER OVERLAY ───────────────────────────────────────────────────────────
+function showWinner(){
+  const ov=document.getElementById('winnerOverlay');
+  document.getElementById('wfEmoji').textContent=G.getVisual(raceWinner);
+  document.getElementById('wfTitle').textContent=G.getLabel(raceWinner).toUpperCase()+' WINS!';
+  document.getElementById('wfTitle').style.color=G.color;
+  const winners=stakeEntries.filter(e=>e.pick===raceWinner);
+  if(winners.length>0){
+    const top=winners.reduce((a,b)=>a.amt>b.amt?a:b);
+    const payout=(poolTotal*.99)/winners.length;
+    const shortTop = top.addr.startsWith('inj1') ? top.addr.slice(0,7)+'...'+top.addr.slice(-5) : top.addr;
+    const explorerIcon = top.addr.startsWith('inj1') ? `<a href="${EXPLORER}/${top.addr}" target="_blank" rel="noopener" title="View on Injective Explorer" style="color:#00b4ff;text-decoration:none;font-size:.8rem;opacity:.85;margin-left:.3rem;">↗</a>` : '';
+    document.getElementById('wfTopVal').innerHTML = `${shortTop} · +${payout.toFixed(3)} INJ${explorerIcon}`;
+    if(myStake&&myStake.pick===raceWinner){
+      const myPayout=(poolTotal*.99)/winners.length;
+      myHistory.unshift({round:roundNum,result:'win',pick:raceWinner,staked:myStake.amt,won:myPayout}); updateLeaderboard(myStake.addr,myPayout);
+      showToast(`🏆 +${myPayout.toFixed(3)} INJ won!`,G.color);
+    } else if(myStake){
+      myHistory.unshift({round:roundNum,result:'lose',pick:myStake.pick,staked:myStake.amt,won:0});
+    }
+  } else {
+    document.getElementById('wfTopVal').textContent='No winners — pool carries over';
+    if(myStake) myHistory.unshift({round:roundNum,result:'lose',pick:myStake.pick,staked:myStake.amt,won:0});
+  }
+  renderHistory();
+  spawnConfetti();
+  ov.classList.add('show');
+}
+function hideWinner(){document.getElementById('winnerOverlay').classList.remove('show'); document.getElementById('confettiBox').innerHTML='';}
+
+function spawnConfetti(){
+  const c=document.getElementById('confettiBox'); c.innerHTML='';
+  for(let i=0;i<35;i++){
+    const el=document.createElement('div');
+    const cols=['#00f5a0','#a78bfa','#fb923c','#fbbf24','#f472b6','#fff'];
+    el.style.cssText=`position:absolute;width:${4+Math.random()*5}px;height:${4+Math.random()*5}px;background:${cols[Math.floor(Math.random()*cols.length)]};left:${Math.random()*100}%;top:-8px;border-radius:${Math.random()>.5?'50%':'2px'};animation:cFall ${1.2+Math.random()*1.5}s ease ${Math.random()*.5}s forwards;`;
+    c.appendChild(el);
+  }
+  if(!document.getElementById('cStyle')){const s=document.createElement('style');s.id='cStyle';s.textContent='@keyframes cFall{to{top:108%;transform:rotate(720deg);opacity:0;}}';document.head.appendChild(s);}
+}
+
+// ─── INTERACTION ──────────────────────────────────────────────────────────────
+function selectOpt(val, el){
+  if(phase!=='staking'||myStake) return;
+  document.querySelectorAll('.opt').forEach(o=>o.classList.remove('selected'));
+  el.classList.add('selected'); selectedOpt=val;
+}
+
+function qs(v){document.getElementById('stakeAmount').value=v;}
+
+function placeStake(){
+  if(phase!=='staking'||myStake) return;
+  if(!selectedOpt){alert('Pick an option first!');return;}
+  const amt=parseFloat(document.getElementById('stakeAmount').value);
+  if(!amt||amt<=0){alert('Enter a valid amount');return;}
+  const addr=window.PumpWallet?.address||null;
+  const displayAddr=addr?addr.slice(0,6)+'...'+addr.slice(-4):'inj1You...';
+  const entry={addr:displayAddr,pick:selectedOpt,amt,time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'})};
+  myStake=entry;
+  addEntry(entry);
+  document.getElementById('myStake').textContent=`${amt} INJ on ${G.opts[selectedOpt-1].label}`;
+  document.getElementById('stakeBtn').disabled=true;
+  document.getElementById('stakeBtn').textContent='✓ STAKED';
+  document.getElementById('optionsGrid').style.pointerEvents='none';
+}
+
+function addEntry(entry){
+  stakeEntries.push(entry); poolTotal+=entry.amt; poolPlayers++;
+  stakes[entry.pick]=(stakes[entry.pick]||0)+entry.amt;
+  updatePool(); renderFeedItem(entry); updatePcts();
+}
+
+function updatePool(){
+  document.getElementById('poolTotal').textContent=poolTotal.toFixed(3)+' INJ';
+  document.getElementById('poolPlayers').textContent=poolPlayers;
+  document.getElementById('feedPool').textContent=poolTotal.toFixed(3)+' INJ';
+}
+
+function updatePcts(){
+  const NUM_OPTS=G.opts.length;
+for(let i=1;i<=NUM_OPTS;i++){
+    const pct=poolTotal>0?Math.round((stakes[i]||0)/poolTotal*100):0;
+    const el=document.getElementById(`pct-${i}`);
+    if(el) el.textContent=pct+'%';
+  }
+}
+
+// ─── FEED ─────────────────────────────────────────────────────────────────────
+function renderFeedItem(e){
+  const list=document.getElementById('feedList');
+  const d=document.createElement('div'); d.className='feed-item';
+  const isReal=e.addr.startsWith('inj1');
+  const shortAddr=isReal ? e.addr.slice(0,7)+'...'+e.addr.slice(-5) : e.addr;
+  const explorerIcon=isReal
+    ?`<a href="${EXPLORER_BASE}/${e.addr}" target="_blank" rel="noopener" title="View on Injective Explorer" style="color:#00b4ff;text-decoration:none;font-size:.8rem;opacity:.85;margin-left:.3rem;">↗</a>`
+    :'';
+  d.innerHTML=`
+    <div class="feed-dot" style="background:${G.color}"></div>
+    <div style="flex:1">
+      <div class="feed-addr">${shortAddr}</div>
+      <div class="feed-tag">${G.opts[e.pick-1].icon} ${G.opts[e.pick-1].label}</div>
+    </div>
+    <div style="text-align:right">
+      <div class="feed-amt">+${e.amt.toFixed(2)} INJ${explorerIcon}</div>
+      <div class="feed-time">${e.time}</div>
+    </div>`;
+  list.insertBefore(d,list.firstChild);
+  if(list.children.length>50) list.removeChild(list.lastChild);
+}
+
+// ─── HISTORY ──────────────────────────────────────────────────────────────────
+let leaderboard = {};
+function updateLeaderboard(addr, won){
+  if(!addr||addr==='You (Practice)'||addr.startsWith('You')) return;
+  if(!leaderboard[addr]) leaderboard[addr]={won:0,wins:0};
+  leaderboard[addr].won+=won; leaderboard[addr].wins++;
+  renderLeaderboard();
+}
+function renderLeaderboard(){
+  const list=document.getElementById('lbList'); if(!list) return;
+  const sorted=Object.entries(leaderboard).sort((a,b)=>b[1].won-a[1].won).slice(0,15);
+  if(!sorted.length){list.innerHTML='<div style="padding:1.5rem;text-align:center;color:var(--muted);font-size:.8rem;">No winners yet</div>';return;}
+    const ranks=['g','s','b'];
+  list.innerHTML='';
+  sorted.forEach(([addr,data],i)=>{
+    const d=document.createElement('div'); d.className='lb-item';
+    const short=addr.slice(0,7)+'...'+addr.slice(-5);
+    const ei=`<a href="${EXPLORER}/${addr}" target="_blank" rel="noopener" title="View on Injective Explorer" style="color:#00b4ff;text-decoration:none;font-size:.8rem;opacity:.85;margin-left:.3rem;">↗</a>`;
+    d.innerHTML=`<div class="lb-rank ${ranks[i]||''}">${i+1}</div>
+      <div style="flex:1"><div style="font-family:'Orbitron',sans-serif;font-size:.65rem;color:var(--text);">${short}</div>
+      <div style="font-size:.6rem;color:var(--muted);">${data.wins} win${data.wins!==1?'s':''}</div></div>
+      <div style="text-align:right;"><div style="font-family:'Orbitron',sans-serif;font-size:.72rem;font-weight:700;color:var(--ac);">+${data.won.toFixed(3)} INJ${ei}</div></div>`;
+    list.appendChild(d);
+  });
+}
+function renderHistory(){
+  const list=document.getElementById('histList'); list.innerHTML='';
+  if(!myHistory.length){list.innerHTML='<div style="padding:1.5rem;text-align:center;color:var(--muted);font-size:.8rem;">No rounds yet</div>';return;}
+  myHistory.slice(0,15).forEach(h=>{
+    const d=document.createElement('div'); d.className='hist-item';
+    d.innerHTML=`
+      <div class="hist-badge ${h.result}">${h.result.toUpperCase()}</div>
+      <div class="hist-info"><div class="hist-r">Round #${h.round} · ${G.opts[h.pick-1]?.label||''}</div><div class="hist-d">Staked ${h.staked.toFixed(2)} INJ</div></div>
+      <div class="hist-amt" style="color:${h.result==='win'?G.color:'#ff6b35'}">${h.result==='win'?'+'+h.won.toFixed(3):'-'+h.staked.toFixed(2)}</div>`;
+    list.appendChild(d);
+  });
+}
+
+// ─── BOTS ─────────────────────────────────────────────────────────────────────
+const BOTS=[
+  'inj1a4k7h2mxp94szq8lnvtu6wy0j3heqcnm5rx82',
+  'inj1b2f9qwz31mpk5xtyvr8s4d0hujl6ncoa73y1x',
+  'inj1c9m5nyr40lqe9uxzwv7k1p3fsagb6doti52j8',
+  'inj1d3p6tkuq28mrvy4szwh0x5e7nbia1fclgd4k9',
+  'inj1e7x1mqnr36ztoyp8vkh2f5scuajb0delgi9mw',
+  'inj1f1z0v5pwts14nqrlcmxeahu3k7yjbd2gcofn8',
+  'inj1g8q9r8kywe25mxzpbstl4v6d0fjnhc3aomug7',
+];
+function startBots(){
+  botInterval=setInterval(()=>{
+    if(phase!=='staking') return;
+    const pick=Math.floor(Math.random()*5)+1;
+    const amts=[0.1,0.2,0.5,1,2,3,5];
+    addEntry({addr:BOTS[Math.floor(Math.random()*BOTS.length)],pick,amt:amts[Math.floor(Math.random()*amts.length)],time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'})});
+  },700+Math.random()*900);
+}
+function stopBots(){clearInterval(botInterval);}
+
+// ─── TABS ─────────────────────────────────────────────────────────────────────
+function switchTab(name,btn){
+  document.querySelectorAll('.stab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active'); document.getElementById(`tab-${name}`).classList.add('active');
+}
+
+// ─── TOAST ────────────────────────────────────────────────────────────────────
+function showToast(msg,color='#00f5a0'){
+  const t=document.createElement('div');
+  t.style.cssText=`position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:#0a1020;border:2px solid ${color};color:${color};padding:.8rem 1.5rem;border-radius:8px;font-family:'Orbitron',sans-serif;font-size:.8rem;font-weight:700;z-index:9999;animation:toastIn .3s ease;white-space:nowrap;`;
+  t.textContent=msg;
+  if(!document.getElementById('toastSty')){const s=document.createElement('style');s.id='toastSty';s.textContent='@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(10px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}';document.head.appendChild(s);}
+  document.body.appendChild(t); setTimeout(()=>t.remove(),4000);
+}
+
+
+let fakeBal=100;
+const _rh=renderHistory;
+window.placeStake=(function(orig){return function(){
+  const btn=document.getElementById('stakeBtn');
+  const amtEl=document.getElementById('stakeAmount');
+  const amt=parseFloat(amtEl.value);
+  if(amt>fakeBal){alert('Not enough fake INJ! Hit Refill.');return;}
+  orig();
+  // deduct only if stake went through (myStake set)
+};})(typeof placeStake!=='undefined'?placeStake:function(){});
+function updateFB(){const el=document.getElementById('fakeBal');if(el)el.textContent=fakeBal.toFixed(2);}
+function refill(){fakeBal=100;updateFB();}
+
+renderHistory();
+startStaking();
+</script>
+</body>
+</html>

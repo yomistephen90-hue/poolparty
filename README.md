@@ -8,7 +8,7 @@
 
 ### Option A — Node.js server (recommended)
 ```bash
-# In the pumptrack/ folder:
+# In the poolparty/ folder:
 node server.js
 ```
 Then open: **http://localhost:3000**
@@ -28,7 +28,7 @@ python -m http.server 3000
 ## File Structure
 
 ```
-pumptrack/
+poolparty/
 ├── index.html       ← Landing page
 ├── game.html        ← Live game (real INJ)
 ├── simulate.html    ← Practice mode (fake INJ)
@@ -56,17 +56,6 @@ pumptrack/
 🔁 REPEAT every ~45s
 ```
 
----
-
-## Judging Criteria Coverage
-
-| Criteria | Weight | How PumpTrack covers it |
-|----------|--------|------------------------|
-| Injective Integration | 40% | CosmWasm contract on Injective testnet, Keplr wallet, INJ staking + payouts |
-| Functionality & Technical Execution | 35% | Fully deployed, live game loop, real wallet connection |
-| UX & Design | 25% | Polished dark UI, animated canvas race, live stake feed |
-
----
 
 ## Push to Git
 

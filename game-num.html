@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PoolParty — Number Rush</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Orbitron:wght@700;900&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root{--bg:#04060f;--surface:#0b0f1e;--surface2:#111827;--border:#1c2340;--text:#e8eaf6;--muted:#5a6485;--ac:#a78bfa;--high:#f97316;--low:#22d3ee;--gold:#fbbf24;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 1.5rem;height:56px;background:rgba(4,6,15,.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);}
+.logo{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800;background:linear-gradient(90deg,#00f5a0,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-decoration:none;}
+.nav-links a{color:var(--muted);text-decoration:none;font-size:.8rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-left:1.2rem;}
+.nav-links a:hover{color:var(--ac);}
+.nav-right{display:flex;align-items:center;gap:.8rem;}
+.wallet-bal{font-family:'Orbitron',sans-serif;font-size:.75rem;color:var(--ac);}
+#walletBtn{background:transparent;border:1px solid var(--ac);color:var(--ac);padding:.4rem 1rem;border-radius:4px;cursor:pointer;font-family:'Orbitron',sans-serif;font-size:.7rem;font-weight:700;letter-spacing:1px;transition:.2s;}
+#walletBtn:hover,#walletBtn.connected{background:var(--ac);color:#000;}
+.app{display:grid;grid-template-columns:1fr 310px;height:calc(100vh - 56px);margin-top:56px;}
+@media(max-width:880px){.app{grid-template-columns:1fr;height:auto;}}
+.main{display:flex;flex-direction:column;padding:.8rem;gap:.7rem;overflow-y:auto;}
+.phase-banner{display:flex;align-items:center;justify-content:space-between;padding:.7rem 1rem;border-radius:8px;border:1px solid;transition:.4s;}
+.phase-banner.staking{border-color:rgba(167,139,250,.3);background:rgba(167,139,250,.05);}
+.phase-banner.locked{border-color:rgba(255,107,53,.5);background:rgba(255,107,53,.08);animation:lp .5s ease-in-out infinite alternate;}
+.phase-banner.revealing{border-color:rgba(251,191,36,.4);background:rgba(251,191,36,.06);}
+.phase-banner.payout{border-color:rgba(34,211,238,.4);background:rgba(34,211,238,.06);}
+@keyframes lp{from{box-shadow:0 0 0 transparent;}to{box-shadow:0 0 16px rgba(255,107,53,.2);}}
+.phase-label{font-family:'Orbitron',sans-serif;font-size:.7rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--ac);}
+.phase-banner.locked .phase-label{color:#ff6b35;}.phase-banner.revealing .phase-label{color:var(--gold);}.phase-banner.payout .phase-label{color:var(--low);}
+.phase-timer{font-family:'Orbitron',sans-serif;font-size:1.5rem;font-weight:900;color:var(--ac);}
+.phase-info{font-size:.75rem;color:var(--muted);}
+.pool-row{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;}
+.pool-card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.6rem .8rem;}
+.pool-card-label{font-size:.62rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
+.pool-card-val{font-family:'Orbitron',sans-serif;font-size:.95rem;font-weight:700;color:var(--ac);margin-top:.15rem;}
+.announce-box{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1rem 1.2rem;text-align:center;position:relative;overflow:visible;}
+.announce-box::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(167,139,250,.06),transparent 70%);pointer-events:none;}
+.announce-type{font-family:'Orbitron',sans-serif;font-size:.65rem;letter-spacing:3px;text-transform:uppercase;margin-bottom:.4rem;}
+.announce-type.high{color:var(--high);}.announce-type.low{color:var(--low);}
+.announce-main{font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:800;color:var(--text);line-height:1.5;}
+.range.high{color:var(--high);}.range.low{color:var(--low);}
+.cards-area{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.2rem;position:relative;}
+.cards-label{font-family:'Orbitron',sans-serif;font-size:.62rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:.8rem;text-align:center;}
+.cards-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.7rem;}
+.flip-card{height:80px;perspective:600px;}
+.flip-card-inner{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .6s cubic-bezier(.4,0,.2,1);}
+.flip-card.flipped .flip-card-inner{transform:rotateY(180deg);}
+.flip-front,.flip-back{position:absolute;inset:0;border-radius:8px;display:flex;align-items:center;justify-content:center;backface-visibility:hidden;-webkit-backface-visibility:hidden;}
+.flip-front{background:var(--surface2);border:2px solid var(--border);font-family:'Orbitron',sans-serif;font-size:1.5rem;color:var(--muted);}
+.flip-back{background:var(--surface2);font-family:'Orbitron',sans-serif;font-size:1.5rem;font-weight:900;transform:rotateY(180deg);border:2px solid var(--border);}
+.flip-back.is-mystery{border-color:var(--ac);background:rgba(167,139,250,.08);}
+.flip-back.is-mystery .card-num{color:var(--ac);}
+.flip-back.is-filler-high{border-color:var(--high);}.flip-back.is-filler-high .card-num{color:var(--high);}
+.flip-back.is-filler-low{border-color:var(--low);}.flip-back.is-filler-low .card-num{color:var(--low);}
+.card-num{transition:.3s;}
+.winner-overlay{display:none;position:absolute;inset:0;z-index:10;background:rgba(4,6,15,.88);backdrop-filter:blur(6px);flex-direction:column;align-items:center;justify-content:center;gap:.5rem;border-radius:10px;}
+.winner-overlay.show{display:flex;animation:wIn .3s ease;}
+@keyframes wIn{from{opacity:0;transform:scale(.95);}to{opacity:1;transform:scale(1);}}
+.wo-num{font-family:'Orbitron',sans-serif;font-size:3rem;font-weight:900;}
+.wo-title{font-family:'Orbitron',sans-serif;font-size:1rem;font-weight:700;color:var(--gold);}
+.wo-sub{font-size:.75rem;color:var(--muted);letter-spacing:2px;}
+.wo-top{background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.3);border-radius:6px;padding:.4rem 1rem;text-align:center;}
+.wo-top-label{font-size:.62rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;}
+.wo-top-val{font-family:'Orbitron',sans-serif;font-size:.95rem;font-weight:700;color:var(--gold);}
+.confetti-box{position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:10px;}
+.options-label{font-family:'Orbitron',sans-serif;font-size:.65rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:.5rem;}
+.options-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;}
+.opt{background:var(--surface);border:2px solid var(--border);border-radius:8px;padding:.8rem .3rem;text-align:center;cursor:pointer;transition:.15s;user-select:none;}
+.opt:hover{border-color:var(--ac);background:rgba(167,139,250,.06);}
+.opt.selected{border-color:var(--ac);background:rgba(167,139,250,.1);transform:translateY(-2px);}
+.opt.correct{border-color:var(--low) !important;background:rgba(34,211,238,.1) !important;}
+.opt.wrong{border-color:#444 !important;opacity:.45;}
+.opt-num{font-family:'Orbitron',sans-serif;font-size:1.3rem;font-weight:900;color:var(--text);}
+.opt.selected .opt-num{color:var(--ac);}.opt.correct .opt-num{color:var(--low);}
+.opt-pct{font-size:.6rem;color:var(--muted);margin-top:.2rem;}
+.stake-row{display:flex;gap:.6rem;align-items:flex-end;}
+.stake-wrap{flex:1;}
+.stake-label{font-size:.7rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:.3rem;}
+.stake-box{display:flex;align-items:center;gap:.4rem;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.55rem .8rem;}
+.stake-box input{background:none;border:none;outline:none;color:var(--text);font-family:'Orbitron',sans-serif;font-size:.95rem;font-weight:700;flex:1;width:0;}
+.stake-denom{font-family:'Orbitron',sans-serif;font-size:.65rem;color:var(--muted);}
+.quick{display:flex;gap:.3rem;margin-top:.3rem;}
+.qbtn{background:var(--surface2);border:1px solid var(--border);color:var(--muted);padding:.25rem .5rem;border-radius:4px;cursor:pointer;font-size:.7rem;font-family:'Orbitron',sans-serif;transition:.2s;}
+.qbtn:hover{border-color:var(--ac);color:var(--ac);}
+#stakeBtn{padding:.6rem 1.4rem;background:var(--ac);color:#000;border:none;border-radius:6px;cursor:pointer;font-family:'Orbitron',sans-serif;font-size:.8rem;font-weight:700;letter-spacing:1px;transition:.2s;white-space:nowrap;}
+#stakeBtn:hover{opacity:.85;}#stakeBtn:disabled{background:var(--muted);color:rgba(0,0,0,.5);cursor:not-allowed;}
+.sidebar{border-left:1px solid var(--border);background:var(--surface);display:flex;flex-direction:column;overflow:hidden;}
+.sidebar-tabs{display:flex;border-bottom:1px solid var(--border);}
+.stab{flex:1;padding:.65rem;text-align:center;cursor:pointer;font-family:'Orbitron',sans-serif;font-size:.6rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);border:none;background:none;border-bottom:2px solid transparent;transition:.2s;}
+.stab.active{color:var(--ac);border-bottom-color:var(--ac);}
+.tab-pane{display:none;flex:1;overflow-y:auto;flex-direction:column;}
+.tab-pane.active{display:flex;}
+.feed-header{padding:.7rem 1rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.feed-title{font-family:'Orbitron',sans-serif;font-size:.65rem;color:var(--muted);letter-spacing:1px;}
+.feed-pool{font-family:'Orbitron',sans-serif;font-size:.85rem;font-weight:700;color:var(--ac);}
+.feed-list{flex:1;overflow-y:auto;padding:.4rem;}
+.feed-item{display:flex;align-items:center;gap:.5rem;padding:.45rem .5rem;border-bottom:1px solid rgba(255,255,255,.03);animation:slideIn .3s ease;}
+@keyframes slideIn{from{opacity:0;transform:translateX(15px);}to{opacity:1;transform:translateX(0);}}
+.feed-dot{width:8px;height:8px;border-radius:50%;background:var(--ac);flex-shrink:0;}
+.feed-addr{font-family:'Orbitron',sans-serif;font-size:.65rem;color:var(--muted);}
+.feed-pick{font-size:.6rem;color:var(--muted);}
+.feed-amt{font-family:'Orbitron',sans-serif;font-size:.7rem;font-weight:700;color:var(--ac);}
+.feed-time{font-size:.6rem;color:rgba(90,100,133,.5);}
+.lb-item{display:flex;align-items:center;gap:.6rem;padding:.6rem 1rem;border-bottom:1px solid rgba(255,255,255,.03);}
+.lb-rank{font-family:'Orbitron',sans-serif;font-size:.8rem;font-weight:700;width:20px;}
+.lb-rank.g{color:#ffd700;}.lb-rank.s{color:#c0c0c0;}.lb-rank.b{color:#cd7f32;}
+.hist-item{display:flex;align-items:center;gap:.5rem;padding:.5rem .9rem;border-bottom:1px solid rgba(255,255,255,.03);}
+.hist-badge{font-size:.6rem;font-weight:700;padding:.15rem .4rem;border-radius:3px;font-family:'Orbitron',sans-serif;letter-spacing:1px;}
+.hist-badge.win{background:rgba(167,139,250,.15);color:var(--ac);}
+.hist-badge.lose{background:rgba(255,107,53,.1);color:#ff6b35;}
+.hist-info{flex:1;}.hist-r{font-family:'Orbitron',sans-serif;font-size:.65rem;color:var(--text);}
+.hist-d{font-size:.6rem;color:var(--muted);}
+.hist-amt{font-family:'Orbitron',sans-serif;font-size:.7rem;font-weight:700;}
+#noWalletModal{display:none;position:fixed;inset:0;z-index:999;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);align-items:center;justify-content:center;}
+.modal-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:2rem;text-align:center;max-width:340px;width:90%;}
+.modal-box h3{font-family:'Orbitron',sans-serif;color:var(--ac);margin-bottom:.8rem;}
+.modal-box p{color:var(--muted);font-size:.85rem;margin-bottom:1.2rem;line-height:1.5;}
+.modal-btns{display:flex;flex-direction:column;gap:.6rem;}
+.modal-btns a{display:block;padding:.65rem;border-radius:5px;text-decoration:none;font-family:'Orbitron',sans-serif;font-size:.75rem;font-weight:700;}
+.modal-btns a.k{background:#00f5a0;color:#000;}.modal-btns a.l{background:#a78bfa;color:#000;}
+#closeNoWallet{background:none;border:1px solid var(--border);color:var(--muted);padding:.45rem .9rem;border-radius:4px;cursor:pointer;margin-top:.3rem;font-size:.8rem;}
+
+/* OUTCOMES BAR */
+.outcomes-wrap{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:.5rem .8rem;}
+.outcomes-label{font-family:'Orbitron',sans-serif;font-size:.58rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:.4rem;}
+.outcomes-bar{display:flex;gap:.3rem;flex-wrap:nowrap;overflow:hidden;}
+.outcome-pill{
+  flex-shrink:0;min-width:36px;padding:.25rem .4rem;border-radius:4px;
+  font-family:'Orbitron',sans-serif;font-size:.6rem;font-weight:700;
+  text-align:center;color:#000;white-space:nowrap;
+  animation:pillIn .25s ease;
+}
+@keyframes pillIn{from{opacity:0;transform:scale(.6);}to{opacity:1;transform:scale(1);}}
+
+
+
+
+/* Push app content down to account for fixed nav (56px) + fixed banner (~44px) */
+@media(max-width:880px){}
+
+
+/* ── LAYOUT & TIMER ─────────────────────────────────────────────────── */
+#phaseBanner{
+  position:relative;
+  
+  display:flex;align-items:center;justify-content:space-between;
+  padding:.6rem 1rem;
+  border:1px solid;border-radius:8px;
+  background:rgba(4,6,15,.97);
+  transition:background .4s,border-color .4s;
+}
+#phaseBanner.staking{border-color:rgba(0,245,160,.25);background:rgba(4,6,15,.97);}
+#phaseBanner.locked{border-color:rgba(255,107,53,.5);background:rgba(255,107,53,.06);animation:lp .5s ease-in-out infinite alternate;}
+#phaseBanner.spinning,#phaseBanner.result{border-color:rgba(0,180,255,.3);background:rgba(0,180,255,.04);}
+#phaseBanner.payout{border-color:rgba(255,215,0,.4);background:rgba(255,215,0,.04);}
+.phase-timer{font-family:'Orbitron',sans-serif;font-size:1.8rem;font-weight:900;color:var(--ac);min-width:55px;text-align:right;flex-shrink:0;}
+.phase-label{font-family:'Orbitron',sans-serif;font-size:.7rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;}
+#phaseBanner.locked .phase-label{color:#ff6b35;}
+#phaseBanner.payout .phase-label{color:#ffd700;}
+.phase-info{font-size:.72rem;color:var(--muted);}
+/* NAV mobile */
+@media(max-width:600px){
+  .nav-links,.nav-center{display:none !important;}
+  .wallet-bal{display:none !important;}
+  nav{padding:0 .7rem;}
+  #walletBtn{padding:.3rem .6rem;font-size:.62rem;}
+  .pool-row{grid-template-columns:repeat(2,1fr) !important;}
+  .stake-row{flex-direction:column;}
+  #stakeBtn{width:100%;}
+  .sidebar{border-left:none;border-top:1px solid var(--border);max-height:280px;}
+  .app{grid-template-columns:1fr !important;}
+}
+/* Winner overlay fullscreen on mobile */
+@media(max-width:880px){
+  #winnerOverlay,.winner-overlay{
+    position:fixed !important;top:56px !important;
+    left:0 !important;right:0 !important;bottom:0 !important;
+    border-radius:0 !important;z-index:999 !important;
+  }
+}
+</style>
+</head>
+<body>
+<nav>
+  <a href="index.html" class="logo">PoolParty</a>
+  <div class="nav-links">
+    <a href="index.html">All Games</a>
+    <a href="simulate-num.html">Practice</a>
+  </div>
+  <div class="nav-right">
+    <span class="wallet-bal" id="walletBalance"></span>
+    <button id="walletBtn">Connect Wallet</button>
+  </div>
+</nav>
+<div class="app">
+  <div class="main">
+    <div class="phase-banner staking" id="phaseBanner">
+      <div>
+        <div class="phase-label" id="phaseLabel">&#9203; BOOKING OPEN (30S)</div>
+        <div class="phase-info" id="phaseInfo">Read the announcement and pick your number</div>
+      </div>
+      <div class="phase-timer" id="phaseTimer">30</div>
+    </div>
+    <div class="pool-row">
+      <div class="pool-card"><div class="pool-card-label">Pool</div><div class="pool-card-val" id="poolTotal">0.000 INJ</div></div>
+      <div class="pool-card"><div class="pool-card-label">Players</div><div class="pool-card-val" id="poolPlayers">0</div></div>
+      <div class="pool-card"><div class="pool-card-label">Round</div><div class="pool-card-val" id="roundNum">#1</div></div>
+      <div class="pool-card"><div class="pool-card-label">My Pick</div><div class="pool-card-val" id="myPick">&#8212;</div></div>
+    </div>
+    <div class="announce-box">
+      <div class="announce-type" id="announceType">FIND THE MYSTERY NUMBER</div>
+      <div class="announce-main" id="announceMain">Loading round...</div>
+    </div>
+    <div class="cards-area" style="position:relative;">
+      <div class="confetti-box" id="confettiBox"></div>
+      <div id="winnerOverlay" class="winner-overlay">
+        <div class="wo-num" id="woNum">?</div>
+        <div class="wo-title" id="woTitle">MYSTERY REVEALED!</div>
+        <div class="wo-sub">PAYOUTS SENT</div>
+        <div class="wo-top"><div class="wo-top-label">Biggest Win</div><div class="wo-top-val" id="woTopVal">&#8212;</div></div>
+      </div>
+      <div class="cards-label" id="cardsLabel">4 CARDS WILL REVEAL &#8212; ONE IS THE MYSTERY NUMBER</div>
+      <div class="cards-grid" id="cardsGrid">
+        <div class="flip-card" id="card0"><div class="flip-card-inner"><div class="flip-front">?</div><div class="flip-back" id="back0"><span class="card-num" id="cnum0">?</span></div></div></div>
+        <div class="flip-card" id="card1"><div class="flip-card-inner"><div class="flip-front">?</div><div class="flip-back" id="back1"><span class="card-num" id="cnum1">?</span></div></div></div>
+        <div class="flip-card" id="card2"><div class="flip-card-inner"><div class="flip-front">?</div><div class="flip-back" id="back2"><span class="card-num" id="cnum2">?</span></div></div></div>
+        <div class="flip-card" id="card3"><div class="flip-card-inner"><div class="flip-front">?</div><div class="flip-back" id="back3"><span class="card-num" id="cnum3">?</span></div></div></div>
+      </div>
+    </div>
+    <div>
+      <div class="options-label" id="optionsLabel">PICK THE MYSTERY NUMBER</div>
+      <div class="options-grid" id="optionsGrid"></div>
+    </div>
+    <div class="stake-row">
+      <div class="stake-wrap">
+        <div class="stake-label">Stake Amount</div>
+        <div class="stake-box"><input type="number" id="stakeAmount" value="0.1" min="0.01" step="0.01"/><span class="stake-denom">INJ</span></div>
+        <div class="quick">
+          <button class="qbtn" onclick="qs(0.1)">0.1</button>
+          <button class="qbtn" onclick="qs(0.5)">0.5</button>
+          <button class="qbtn" onclick="qs(1)">1</button>
+          <button class="qbtn" onclick="qs(5)">5</button>
+          <button class="qbtn" onclick="qs(10)">10</button>
+        </div>
+      </div>
+      <button id="stakeBtn" onclick="placeStake()">STAKE INJ</button>
+    </div>
+  </div>
+  <div class="sidebar">
+    <div class="sidebar-tabs">
+      <button class="stab active" onclick="switchTab('feed',this)">Live Stakes</button>
+      <button class="stab" onclick="switchTab('leaderboard',this)">Leaderboard</button>
+      <button class="stab" onclick="switchTab('history',this)">My History</button>
+    </div>
+    <div class="tab-pane active" id="tab-feed">
+      <div class="feed-header"><span class="feed-title">LIVE POOL FEED</span><span class="feed-pool" id="feedPool">0.000 INJ</span></div>
+      <div class="feed-list" id="feedList"></div>
+    </div>
+    <div class="tab-pane" id="tab-leaderboard">
+      <div class="feed-header"><span class="feed-title">LEADERBOARD</span><span style="font-family:Orbitron,sans-serif;font-size:.7rem;color:#5a6485;">ALL-TIME</span></div>
+      <div id="lbList"></div>
+    </div>
+    <div class="tab-pane" id="tab-history">
+      <div class="feed-header"><span class="feed-title">MY HISTORY</span></div>
+      <div id="histList"></div>
+    </div>
+  </div>
+</div>
+<div id="noWalletModal"><div class="modal-box"><h3>Wallet Required</h3><p>Connect Keplr or Leap to stake real INJ.</p><div class="modal-btns"><a href="https://www.keplr.app/download" target="_blank" class="k">Install Keplr</a><a href="https://www.leapwallet.io/download" target="_blank" class="l">Install Leap</a></div><button id="closeNoWallet">Maybe Later</button></div></div>
+<script src="wallet.js"></script>
+<script>
+const EXPLORER = 'https://testnet.explorer.injective.network/account';
+
+const ROUND_TYPES=[
+  {type:'HIGH',fillerMin:0, fillerMax:4, mystMin:5, mystMax:8, label:'HIGHEST',color:'high'},
+  {type:'LOW', fillerMin:10,fillerMax:14,mystMin:6, mystMax:9, label:'LOWEST', color:'low'},
+  {type:'HIGH',fillerMin:0, fillerMax:3, mystMin:20,mystMax:25,label:'HIGHEST',color:'high'},
+  {type:'LOW', fillerMin:30,fillerMax:40,mystMin:10,mystMax:15,label:'LOWEST', color:'low'},
+];
+function ri(a,b){return Math.floor(Math.random()*(b-a+1))+a;}
+function genRound(){
+  const cfg=ROUND_TYPES[Math.floor(Math.random()*ROUND_TYPES.length)];
+  const mystery=ri(cfg.mystMin,cfg.mystMax);
+  const fillers=[];
+  while(fillers.length<3){const n=ri(cfg.fillerMin,cfg.fillerMax);if(!fillers.includes(n))fillers.push(n);}
+  const allCards=[...fillers,mystery].sort(()=>Math.random()-.5);
+  const wrongOpts=[];
+  while(wrongOpts.length<4){const n=ri(cfg.mystMin,cfg.mystMax);if(n!==mystery&&!wrongOpts.includes(n))wrongOpts.push(n);}
+  const options=[...wrongOpts,mystery].sort((a,b)=>a-b);
+  return{cfg,mystery,fillers,allCards,options};
+}
+let round=genRound();
+// ── CARRYOVER POOL ────────────────────────────────────────────────────────
+let carryoverPool = 0; // Pool that carries from previous round (no winners)
+
+let phase='staking',phaseInterval,phaseCountdown,botInterval;
+let poolTotal=0,poolPlayers=0,roundNum=1,selectedOpt=null,myStake=null;
+let stakeEntries=[],stakes={},myHistory=[];
+const STAKING_MS=30000,LOCK_MS=5000,REVEAL_MS=10000,WINNER_MS=5000;
+
+// ── OUTCOMES BAR ──────────────────────────────────────────────────────────────
+let recentOutcomes=[];
+function addOutcome(label,color){
+  recentOutcomes.push({label,color});
+  if(recentOutcomes.length>20)recentOutcomes.shift();
+  renderOutcomes();
+}
+function renderOutcomes(){
+  const bar=document.getElementById('outcomesBar');if(!bar)return;
+  bar.innerHTML='';
+  recentOutcomes.forEach(o=>{
+    const p=document.createElement('div');p.className='outcome-pill';
+    p.style.background=o.color;p.textContent=o.label;
+    bar.appendChild(p);
+  });
+}
+
+function buildUI(){
+  const{cfg,options}=round;
+  document.getElementById('announceType').textContent='';
+  document.getElementById('announceType').style.display='none';
+  document.getElementById('announceMain').innerHTML='4 numbers will be revealed. One is between <span class="range '+cfg.color+'">'+cfg.mystMin+' \u2013 '+cfg.mystMax+'</span>. Pick which number it is before the cards flip!';
+  document.getElementById('optionsLabel').textContent='PICK THE MYSTERY NUMBER ('+ cfg.mystMin +' to '+ cfg.mystMax +')';
+  stakes={};
+  options.forEach(n=>stakes[n]=0);
+  const grid=document.getElementById('optionsGrid');
+  grid.innerHTML='';
+  options.forEach(n=>{
+    const d=document.createElement('div');d.className='opt';d.dataset.val=n;
+    d.innerHTML='<div class="opt-num">'+n+'</div><div class="opt-pct" id="pct-'+n+'">0%</div>';
+    d.onclick=()=>selOpt(n,d);grid.appendChild(d);
+  });
+  for(let i=0;i<4;i++){
+    document.getElementById('card'+i).classList.remove('flipped');
+    document.getElementById('back'+i).className='flip-back';
+    document.getElementById('cnum'+i).textContent='?';
+  }
+  document.getElementById('cardsLabel').textContent='4 CARDS WILL REVEAL — ONE IS IN THE RANGE SHOWN ABOVE';
+}
+function revealCards(onDone){
+  const{allCards,mystery,cfg}=round;
+  document.getElementById('cardsLabel').textContent='REVEALING CARDS...';
+  let i=0;
+  const iv=setInterval(()=>{
+    const num=allCards[i];
+    const isMyst=num===mystery;
+    const back=document.getElementById('back'+i);
+    document.getElementById('cnum'+i).textContent=num;
+    back.className='flip-back '+(isMyst?'is-mystery':(cfg.type==='HIGH'?'is-filler-low':'is-filler-high'));
+    document.getElementById('card'+i).classList.add('flipped');
+    i++;
+    if(i>=4){
+      clearInterval(iv);
+      document.getElementById('cardsLabel').textContent='\u2705 MYSTERY NUMBER: '+mystery;
+      document.querySelectorAll('.opt').forEach(o=>{
+        const v=parseInt(o.dataset.val);
+        o.classList.add(v===mystery?'correct':'wrong');
+      });
+      setTimeout(onDone,600);
+    }
+  },REVEAL_MS/5);
+}
+
+// ── TIMER FORMATTER ──────────────────────────────────────────────────────────
+function formatTimer(ms) {
+  if (ms <= 0) return '0';
+  const totalSecs = Math.ceil(ms / 1000);
+  if (totalSecs < 60) return String(totalSecs);
+  const h = Math.floor(totalSecs / 3600);
+  const m = Math.floor((totalSecs % 3600) / 60);
+  const s = totalSecs % 60;
+  if (h > 0) return h + 'h ' + String(m).padStart(2,'0') + 'm';
+  return String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+}
+
+function startStaking(){
+  phase='staking';round=genRound();stakeEntries=[];stakes={};poolTotal=0;poolPlayers=0;selectedOpt=null;myStake=null;
+  buildUI();updatePool();hideWinner();
+  document.getElementById('feedList').innerHTML='';
+  document.getElementById('stakeBtn').disabled=false;
+  document.getElementById('stakeBtn').textContent='STAKE INJ';
+  document.getElementById('optionsGrid').style.pointerEvents='auto';
+  document.getElementById('myPick').textContent='\u2014';
+  updateBanner('staking','\u23f3 BOOKING OPEN (30S)','Stake anytime — booking closes before cards flip');
+  startBots();
+  startCD(STAKING_MS,rem=>{const s=Math.ceil(rem/1000);document.getElementById('phaseTimer').textContent=Math.ceil(rem/1000);if(s<=5&&s>0&&phase==='staking')lockIt(s);},startReveal);
+}
+function lockIt(s){
+  if(phase==='locked')return;phase='locked';clearInterval(phaseInterval);stopBots();
+  document.getElementById('stakeBtn').disabled=true;document.getElementById('stakeBtn').textContent='\uD83D\uDD12 LOCKED';
+  document.getElementById('optionsGrid').style.pointerEvents='none';
+  updateBanner('locked','\uD83D\uDD12 STAKES LOCKED','Cards revealing soon...');
+  let n=s;phaseCountdown=setInterval(()=>{n--;document.getElementById('phaseTimer').textContent=n;if(n<=0){clearInterval(phaseCountdown);startReveal();}},1000);
+}
+function startReveal(){
+  if(phase==='revealing')return;phase='revealing';
+  updateBanner('revealing','\uD83C\uDCCF REVEALING CARDS','Watch the cards flip...');
+  let s=Math.ceil(REVEAL_MS/1000);document.getElementById('phaseTimer').textContent=s;
+  phaseCountdown=setInterval(()=>{s--;document.getElementById('phaseTimer').textContent=Math.max(s,0);if(s<=0)clearInterval(phaseCountdown);},1000);
+  revealCards(endRound);
+}
+function endRound(){
+  phase='payout';
+  clearInterval(phaseInterval); clearInterval(phaseCountdown);
+  const _cfg=round.cfg; addOutcome(String(round.mystery), _cfg.color==='high'?'#f97316':'#22d3ee');
+  const m=round.mystery;
+  updateBanner('payout','\u2705 MYSTERY: '+m,'Paying out winners...');
+  showWinner(m);
+  let n=Math.ceil(WINNER_MS/1000);document.getElementById('phaseTimer').textContent=n;
+  updateBanner('payout','\u2705 MYSTERY: '+m,'New 12h booking open — stake for next race!');
+  clearInterval(phaseCountdown);
+  phaseCountdown=setInterval(()=>{n--;document.getElementById('phaseTimer').textContent=Math.max(n,0);updateBanner('payout','\u2705 MYSTERY: '+m,'New round in '+n+'s!');},1000);
+  setTimeout(()=>{clearInterval(phaseCountdown);roundNum++;document.getElementById('roundNum').textContent='#'+roundNum;startStaking();}, WINNER_MS);
+}
+function startCD(dur,onTick,onDone){const end=Date.now()+dur;clearInterval(phaseInterval);phaseInterval=setInterval(()=>{const r=end-Date.now();if(r<=0){clearInterval(phaseInterval);onDone();}else onTick(r);},100);}
+function updateBanner(cls,label,info){document.getElementById('phaseBanner').className='phase-banner '+cls;document.getElementById('phaseLabel').textContent=label;document.getElementById('phaseInfo').textContent=info;}
+function showWinner(m){
+  const ov=document.getElementById('winnerOverlay');
+  const woNum=document.getElementById('woNum');
+  woNum.textContent=m;woNum.style.color=round.cfg.color==='high'?'var(--high)':'var(--low)';
+  document.getElementById('woTitle').textContent=round.cfg.type==='HIGH'?'\uD83C\uDFC6 HIGHEST NUMBER!':'\uD83C\uDFC6 LOWEST NUMBER!';
+  
+  const winners=stakeEntries.filter(e=>e.pick===m);
+  
+  if(winners.length>0){
+    // ✅ WINNERS EXIST — distribute pool (99% to winners, 1% fee)
+    // Pool includes both current pool + any carryover from previous rounds
+    const totalPool = poolTotal + carryoverPool;
+    const payout = (totalPool * 0.99) / winners.length;
+    winners.forEach(w => updateLeaderboard(w.addr, payout));
+    
+    const top=winners.reduce((a,b)=>a.amt>b.amt?a:b);
+    const st=top.addr.startsWith('inj1')?top.addr.slice(0,7)+'...'+top.addr.slice(-5):top.addr;
+    const el=top.addr.startsWith('inj1')?'<a href="'+EXPLORER+'/'+top.addr+'" target="_blank" rel="noopener" title="View on Injective Explorer" style="color:#00b4ff;text-decoration:none;font-size:.85rem;opacity:.85;margin-left:.3rem;">\u2197</a>':'';
+    document.getElementById('woTopVal').innerHTML=st+' \u00b7 +'+payout.toFixed(3)+' INJ '+el;
+    
+    if(myStake&&myStake.pick===m){
+      const mp = (totalPool * 0.99) / winners.length;
+      myHistory.unshift({round:roundNum,result:'win',pick:m,staked:myStake.amt,won:mp});
+      updateLeaderboard(myStake.addr,mp);
+      showToast('\uD83C\uDFC6 +'+mp.toFixed(3)+' INJ won! Mystery was '+m);
+    } else if(myStake) myHistory.unshift({round:roundNum,result:'lose',pick:myStake.pick,staked:myStake.amt,won:0});
+    
+    // ✅ CLEAR CARRYOVER — it was distributed
+    carryoverPool = 0;
+  } else {
+    // ❌ NO WINNERS — entire pool carries to next round
+    carryoverPool += poolTotal;
+    document.getElementById('woTopVal').innerHTML = '<span style="color:#ff6b35;">🎲 NO WINNERS!</span><br>Pool +'+carryoverPool.toFixed(3)+' INJ → Next Round';
+    if(myStake)myHistory.unshift({round:roundNum,result:'lose',pick:myStake.pick,staked:myStake.amt,won:0});
+  }
+  
+  spawnConfetti();renderHistory();ov.classList.add('show');
+}
+function hideWinner(){document.getElementById('winnerOverlay').classList.remove('show');document.getElementById('confettiBox').innerHTML='';}
+function spawnConfetti(){
+  const c=document.getElementById('confettiBox');c.innerHTML='';
+  const cols=['#a78bfa','#00f5a0','#fb923c','#fbbf24','#f472b6','#fff'];
+  for(let i=0;i<35;i++){const el=document.createElement('div');el.style.cssText='position:absolute;width:'+(4+Math.random()*5)+'px;height:'+(4+Math.random()*5)+'px;background:'+cols[Math.floor(Math.random()*cols.length)]+';left:'+Math.random()*100+'%;top:-8px;border-radius:'+(Math.random()>.5?'50%':'2px')+';animation:cFall '+(1.2+Math.random()*1.5)+'s ease '+(Math.random()*.5)+'s forwards;';c.appendChild(el);}
+  if(!document.getElementById('cStyle')){const s=document.createElement('style');s.id='cStyle';s.textContent='@keyframes cFall{to{top:108%;transform:rotate(720deg);opacity:0;}}';document.head.appendChild(s);}
+}
+function selOpt(val,el){if(phase!=='staking'||myStake)return;document.querySelectorAll('.opt').forEach(o=>o.classList.remove('selected'));el.classList.add('selected');selectedOpt=val;}
+function qs(v){document.getElementById('stakeAmount').value=v;}
+
+// ── WALLET GUARD ─────────────────────────────────────────────────────────────
+function requireWallet() {
+  const wallet = window.PumpWallet;
+  // Not connected at all
+  if (!wallet || !wallet.address) {
+    showWalletRequired();
+    return false;
+  }
+  // Wallet connected — allow stake
+  // Balance may still be loading (async) so we only block if explicitly 0
+  // after a successful fetch. If null/undefined, we let it through.
+  const bal = wallet.balance;
+  if (bal !== null && bal !== undefined && parseFloat(bal) <= 0) {
+    showWalletRequired();
+    return false;
+  }
+  return true;
+}
+function showWalletRequired() {
+  document.getElementById('walletRequiredModal').style.display = 'flex';
+}
+
+function placeStake(){
+  if (!requireWallet()) return;
+  if(phase!=='staking'||myStake)return;
+  if(selectedOpt===null){alert('Pick a number first!');return;}
+  const amt=parseFloat(document.getElementById('stakeAmount').value);
+  if(!amt||amt<=0){alert('Enter a valid amount');return;}
+  const addr=window.PumpWallet?.address||null;
+  const da=addr?addr.slice(0,7)+'...'+addr.slice(-5):'inj1Demo...';
+  const e={addr:da,pick:selectedOpt,amt,time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'})};
+  myStake=e;addEntry(e);
+  document.getElementById('myPick').textContent=''+selectedOpt;
+  document.getElementById('stakeBtn').disabled=true;document.getElementById('stakeBtn').textContent='\u2713 STAKED';
+  document.getElementById('optionsGrid').style.pointerEvents='none';
+}
+function addEntry(e){stakeEntries.push(e);poolTotal+=e.amt;poolPlayers++;stakes[e.pick]=(stakes[e.pick]||0)+e.amt;updatePool();renderFeedItem(e);updatePcts();}
+function updatePool(){document.getElementById('poolTotal').textContent=poolTotal.toFixed(3)+' INJ';document.getElementById('poolPlayers').textContent=poolPlayers;document.getElementById('feedPool').textContent=poolTotal.toFixed(3)+' INJ';}
+function updatePcts(){round.options.forEach(n=>{const pct=poolTotal>0?Math.round((stakes[n]||0)/poolTotal*100):0;const el=document.getElementById('pct-'+n);if(el)el.textContent=pct+'%';});}
+function renderFeedItem(e){
+  const list=document.getElementById('feedList');const d=document.createElement('div');d.className='feed-item';
+  const isReal=e.addr.startsWith('inj1');
+  const ei=isReal?'<a href="'+EXPLORER+'/'+e.addr+'" target="_blank" rel="noopener" title="View on Explorer" style="color:#00b4ff;text-decoration:none;font-size:.8rem;opacity:.85;margin-left:.3rem;">\u2197</a>':'';
+  const shortA=e.addr.startsWith('inj1')?e.addr.slice(0,7)+'...'+e.addr.slice(-5):e.addr;
+  d.innerHTML='<div class="feed-dot"></div><div style="flex:1"><div class="feed-addr">'+shortA+'</div><div class="feed-pick">Picked: '+e.pick+'</div></div><div style="text-align:right"><div class="feed-amt">+'+e.amt.toFixed(2)+' INJ'+ei+'</div><div class="feed-time">'+e.time+'</div></div>';
+  list.insertBefore(d,list.firstChild);if(list.children.length>50)list.removeChild(list.lastChild);
+}
+let leaderboard={};
+function updateLeaderboard(addr,won){
+  if(!addr||addr.startsWith('You'))return;
+  if(!leaderboard[addr])leaderboard[addr]={won:0,wins:0};
+  leaderboard[addr].won+=won;leaderboard[addr].wins++;
+  renderLeaderboard();
+}
+function renderLeaderboard(){
+  const list=document.getElementById('lbList');if(!list)return;
+  const sorted=Object.entries(leaderboard).sort((a,b)=>b[1].won-a[1].won).slice(0,15);
+  if(!sorted.length){list.innerHTML='<div style="padding:1.5rem;text-align:center;color:#5a6485;font-size:.8rem;">No winners yet</div>';return;}
+  const ranks=['g','s','b'];list.innerHTML='';
+  sorted.forEach(([addr,data],i)=>{
+    const d=document.createElement('div');d.className='lb-item';
+    const short=addr.slice(0,7)+'...'+addr.slice(-5);
+    const ei=`<a href="${EXPLORER}/${addr}" target="_blank" rel="noopener" title="View on Injective Explorer" style="color:#00b4ff;text-decoration:none;font-size:.8rem;opacity:.85;margin-left:.3rem;">↗</a>`;
+    d.innerHTML=`<div class="lb-rank ${ranks[i]||''}">${i+1}</div>
+      <div style="flex:1"><div style="font-family:'Orbitron',sans-serif;font-size:.65rem;color:#e8eaf6;">${short}</div>
+      <div style="font-size:.6rem;color:#5a6485;">${data.wins} win${data.wins!==1?'s':''}</div></div>
+      <div style="text-align:right"><div style="font-family:'Orbitron',sans-serif;font-size:.72rem;font-weight:700;color:#a78bfa;">+${data.won.toFixed(3)} INJ${ei}</div></div>`;
+    list.appendChild(d);
+  });
+}
+function renderHistory(){
+  const list=document.getElementById('histList');list.innerHTML='';
+  if(!myHistory.length){list.innerHTML='<div style="padding:1.5rem;text-align:center;color:var(--muted);font-size:.8rem;">No rounds yet</div>';return;}
+  myHistory.slice(0,15).forEach(h=>{const d=document.createElement('div');d.className='hist-item';d.innerHTML='<div class="hist-badge '+h.result+'">'+h.result.toUpperCase()+'</div><div class="hist-info"><div class="hist-r">Round #'+h.round+' \u00b7 Picked '+h.pick+'</div><div class="hist-d">Staked '+h.staked.toFixed(2)+' INJ</div></div><div class="hist-amt" style="color:'+(h.result==='win'?'var(--ac)':'#ff6b35')+'">'+( h.result==='win'?'+'+h.won.toFixed(3):'-'+h.staked.toFixed(2))+' INJ</div>';list.appendChild(d);});
+}
+// ✅ ======== DEMO BOT CODE REMOVED ========  
+// startBots() and stopBots() functions DELETED
+// No more auto-demo players in real game!
+// ✅ =========================================
+function startBots(){ /* disabled */ }
+function stopBots(){ /* disabled */ }
+function switchTab(name,btn){document.querySelectorAll('.stab').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));btn.classList.add('active');document.getElementById('tab-'+name).classList.add('active');}
+function showToast(msg){const t=document.createElement('div');t.style.cssText='position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:#0a0820;border:2px solid var(--ac);color:var(--ac);padding:.8rem 1.5rem;border-radius:8px;font-family:Orbitron,monospace;font-size:.8rem;font-weight:700;z-index:9999;white-space:nowrap;';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),4000);}
+renderHistory();startStaking();
+</script>
+
+<!-- WALLET REQUIRED MODAL -->
+<div id="walletRequiredModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.88);backdrop-filter:blur(10px);align-items:center;justify-content:center;">
+  <div style="background:#0b0f1e;border:1px solid #1c2340;border-radius:16px;padding:2rem;text-align:center;max-width:380px;width:90%;position:relative;">
+    <div style="font-size:2.5rem;margin-bottom:.8rem;">🔒</div>
+    <div style="font-family:'Orbitron',sans-serif;font-size:1rem;font-weight:700;color:#e8eaf6;margin-bottom:.5rem;">WALLET REQUIRED</div>
+    <p style="color:#5a6485;font-size:.88rem;line-height:1.6;margin-bottom:1.2rem;">You need a connected Keplr or Leap wallet with real INJ to stake.<br>No INJ yet? Get some below.</p>
+    <div style="display:flex;flex-direction:column;gap:.6rem;margin-bottom:1rem;">
+      <button onclick="window.PumpWallet.connect().then(()=>document.getElementById('walletRequiredModal').style.display='none')"
+        style="background:#00f5a0;color:#000;border:none;padding:.7rem;border-radius:8px;cursor:pointer;font-family:'Orbitron',sans-serif;font-size:.8rem;font-weight:700;letter-spacing:1px;">
+        🔗 CONNECT WALLET
+      </button>
+      <a href="index.html#get-inj" style="background:transparent;border:1px solid #1c2340;color:#00b4ff;padding:.65rem;border-radius:8px;font-family:'Orbitron',sans-serif;font-size:.75rem;font-weight:700;letter-spacing:1px;text-decoration:none;display:block;">
+        💰 GET INJ FIRST
+      </a>
+      <a href="simulate-num.html" id="practiceLink" style="background:transparent;border:1px solid #fbbf24;color:#fbbf24;padding:.65rem;border-radius:8px;font-family:'Orbitron',sans-serif;font-size:.75rem;font-weight:700;letter-spacing:1px;text-decoration:none;display:block;">
+        🟡 PRACTICE WITH FAKE INJ
+      </a>
+    </div>
+    <button onclick="document.getElementById('walletRequiredModal').style.display='none'"
+      style="background:none;border:none;color:#5a6485;cursor:pointer;font-size:.8rem;">
+      Maybe Later
+    </button>
+  </div>
+</div>
+
+</body>
+</html>

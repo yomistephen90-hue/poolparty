@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PoolParty — Practice Mode</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Barlow+Condensed:wght@400;600;700&family=Barlow:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:#050810; --surface:#0c1120; --surface2:#111827;
+  --border:#1a2540; --accent:#ff9500; --accent2:#ffb84d;
+  --real:#00f5a0; --warn:#ff6b35; --gold:#ffd700; --text:#e8eaf0; --muted:#6b7a99;
+  --car1:#00f5a0; --car2:#00b4ff; --car3:#ff6b35; --car4:#ffd700; --car5:#c084fc;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;overflow-x:hidden;}
+
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 1.5rem;height:56px;
+  background:rgba(5,8,16,.95);backdrop-filter:blur(12px);
+  border-bottom:1px solid rgba(255,149,0,.3);
+}
+.logo{font-family:'Orbitron',sans-serif;font-size:1.1rem;font-weight:900;color:var(--real);text-decoration:none;}
+.logo span{color:#00b4ff;}
+.sim-badge{
+  background:rgba(255,149,0,.15);border:1px solid rgba(255,149,0,.4);
+  color:var(--accent);padding:.3rem .8rem;border-radius:4px;
+  font-family:'Orbitron',sans-serif;font-size:.7rem;font-weight:700;letter-spacing:2px;
+}
+.nav-right{display:flex;align-items:center;gap:.8rem;}
+.fake-bal{
+  background:rgba(255,149,0,.1);border:1px solid rgba(255,149,0,.3);
+  color:var(--accent);padding:.3rem .8rem;border-radius:4px;
+  font-family:'Orbitron',sans-serif;font-size:.75rem;font-weight:700;
+}
+.refill-btn{
+  background:transparent;border:1px solid var(--accent);color:var(--accent);
+  padding:.3rem .8rem;border-radius:4px;cursor:pointer;
+  font-family:'Orbitron',sans-serif;font-size:.65rem;font-weight:700;transition:.2s;
+}
+.refill-btn:hover{background:rgba(255,149,0,.1);}
+.play-real{
+  background:var(--real);color:#000;padding:.3rem 1rem;border-radius:4px;
+  text-decoration:none;font-family:'Orbitron',sans-serif;font-size:.7rem;font-weight:700;
+  letter-spacing:1px;transition:.2s;
+}
+.play-real:hover{background:#00c880;}
+
+.app{display:grid;grid-template-columns:1fr 300px;gap:0;height:calc(100vh - 56px);margin-top:56px;}
+@media(max-width:900px){.app{grid-template-columns:1fr;height:auto;}}
+.main{display:flex;flex-direction:column;padding:.6rem;gap:.5rem;overflow-y:auto;}
+
+/* PRACTICE BANNER */
+.practice-banner{
+  background:rgba(255,149,0,.08);border:1px solid rgba(255,149,0,.3);border-radius:6px;
+  padding:.6rem 1rem;display:flex;align-items:center;justify-content:space-between;gap:.5rem;
+}
+.pb-left{display:flex;align-items:center;gap:.6rem;}
+.pb-icon{font-size:1.2rem;}
+.pb-text{font-family:'Barlow Condensed',sans-serif;font-size:.9rem;color:var(--accent);letter-spacing:1px;font-weight:700;}
+.pb-sub{font-size:.75rem;color:var(--muted);}
+
+
+/* POOL ROW */
+.pool-row{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;}
+.pool-card{flex:1;min-width:110px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.8rem 1rem;}
+.pool-card-label{font-size:.7rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
+.pool-card-val{font-family:'Orbitron',sans-serif;font-size:1rem;font-weight:700;color:var(--accent);}
+.pool-card-val.real{color:var(--real);}
+.pool-card-val.warn{color:var(--warn);}
+.pool-card-val.pos{color:var(--real);}
+.pool-card-val.neg{color:var(--warn);}
+
+/* TRACK */
+.track-container{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:visible;}
+#raceCanvas{display:block;width:100%;height:auto;max-height:220px;}
+#winnerOverlay{display:none;position:absolute;inset:0;z-index:10;background:rgba(5,8,16,.88);backdrop-filter:blur(4px);flex-direction:column;align-items:center;justify-content:center;gap:.8rem;}
+#winnerOverlay.show{display:flex;animation:fadeIn .3s ease;}
+@keyframes fadeIn{from{opacity:0;transform:scale(.95);}to{opacity:1;transform:scale(1);}}
+.winner-car-badge{width:80px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Orbitron',sans-serif;font-size:1.4rem;font-weight:900;color:#000;}
+.winner-title{font-family:'Orbitron',sans-serif;font-size:1.4rem;font-weight:900;color:var(--gold);}
+.winner-subtitle{font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;color:var(--muted);letter-spacing:2px;}
+.result-box{border-radius:6px;padding:.8rem 1.5rem;text-align:center;}
+.result-box.win{background:rgba(0,245,160,.1);border:1px solid rgba(0,245,160,.3);}
+.result-box.lose{background:rgba(255,107,53,.1);border:1px solid rgba(255,107,53,.3);}
+.result-box.watch{background:rgba(255,255,255,.05);border:1px solid var(--border);}
+.result-label{font-size:.7rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;}
+.result-val{font-family:'Orbitron',sans-serif;font-size:1.3rem;font-weight:700;margin-top:.2rem;}
+.result-box.win .result-val{color:var(--real);}
+.result-box.lose .result-val{color:var(--warn);}
+.confetti-container{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+
+/* CARS */
+.car-odds{display:grid;grid-template-columns:repeat(5,1fr);gap:.4rem;}
+.car-odd{background:var(--surface);border:2px solid var(--border);border-radius:6px;padding:.4rem .2rem;text-align:center;cursor:pointer;transition:.2s;user-select:none;min-width:0;}
+.car-odd.selected{transform:translateY(-3px);}
+.car-odd.c1.selected,.car-odd.c1:hover{border-color:var(--car1);background:rgba(0,245,160,.08);}
+.car-odd.c2.selected,.car-odd.c2:hover{border-color:var(--car2);background:rgba(0,180,255,.08);}
+.car-odd.c3.selected,.car-odd.c3:hover{border-color:var(--car3);background:rgba(255,107,53,.08);}
+.car-odd.c4.selected,.car-odd.c4:hover{border-color:var(--car4);background:rgba(255,215,0,.08);}
+.car-odd.c5.selected,.car-odd.c5:hover{border-color:var(--car5);background:rgba(192,132,252,.08);}
+.car-dot{width:20px;height:12px;border-radius:3px;margin:0 auto .3rem;}
+.car-num-label{font-family:'Orbitron',sans-serif;font-size:.8rem;font-weight:700;}
+.car-pct{font-size:.7rem;color:var(--muted);}
+.car-sel-badge{font-size:.65rem;font-weight:600;margin-top:.2rem;}
+
+/* STAKE */
+.stake-row{display:flex;gap:.8rem;align-items:flex-end;}
+.stake-input-wrap{flex:1;}
+.input-label{font-size:.75rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:.4rem;}
+.stake-input-box{display:flex;align-items:center;gap:.5rem;background:var(--surface);border:1px solid rgba(255,149,0,.3);border-radius:6px;padding:.6rem .8rem;}
+.stake-input-box input{background:none;border:none;outline:none;color:var(--text);font-family:'Orbitron',sans-serif;font-size:1rem;font-weight:700;flex:1;width:0;}
+.stake-denom{font-family:'Orbitron',sans-serif;font-size:.75rem;color:var(--accent);}
+.quick-btns{display:flex;gap:.4rem;margin-top:.4rem;}
+.quick-btn{background:var(--surface2);border:1px solid var(--border);color:var(--muted);padding:.3rem .6rem;border-radius:4px;cursor:pointer;font-size:.75rem;font-family:'Orbitron',sans-serif;transition:.2s;}
+.quick-btn:hover{border-color:var(--accent);color:var(--accent);}
+#stakeBtn{padding:.7rem 1.5rem;background:var(--accent);color:#000;border:none;border-radius:6px;cursor:pointer;font-family:'Orbitron',sans-serif;font-size:.85rem;font-weight:700;letter-spacing:1px;transition:.2s;white-space:nowrap;}
+#stakeBtn:hover{background:#ffaa22;}
+#stakeBtn:disabled{background:var(--muted);color:rgba(0,0,0,.5);cursor:not-allowed;}
+
+/* SIDEBAR */
+.sidebar{border-left:1px solid var(--border);background:var(--surface);display:flex;flex-direction:column;overflow:hidden;}
+.sidebar-tabs{display:flex;border-bottom:1px solid var(--border);}
+.tab-btn{flex:1;padding:.7rem;text-align:center;cursor:pointer;font-family:'Orbitron',sans-serif;font-size:.6rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);border:none;background:none;border-bottom:2px solid transparent;transition:.2s;}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tab-pane{display:none;flex:1;overflow-y:auto;flex-direction:column;}
+.tab-pane.active{display:flex;}
+
+/* FEED */
+.feed-header{padding:.8rem 1rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.feed-title{font-family:'Orbitron',sans-serif;font-size:.7rem;color:var(--muted);letter-spacing:1px;}
+.feed-pool{font-family:'Orbitron',sans-serif;font-size:.9rem;font-weight:700;color:var(--accent);}
+.feed-list{flex:1;overflow-y:auto;padding:.5rem;}
+.feed-item{display:flex;align-items:center;gap:.6rem;padding:.5rem .6rem;border-bottom:1px solid rgba(255,255,255,.03);animation:slideIn .3s ease;}
+@keyframes slideIn{from{opacity:0;transform:translateX(20px);}to{opacity:1;transform:translateX(0);}}
+.feed-addr{font-family:'Orbitron',sans-serif;font-size:.7rem;color:var(--muted);flex:1;}
+.feed-amount{font-family:'Orbitron',sans-serif;font-size:.75rem;font-weight:700;}
+.feed-car-tag{font-size:.65rem;color:var(--muted);}
+.feed-time{font-size:.65rem;color:rgba(107,122,153,.5);}
+
+/* STATS */
+.stats-section{padding:.8rem 1rem;border-bottom:1px solid var(--border);}
+.stats-title{font-family:'Orbitron',sans-serif;font-size:.65rem;color:var(--muted);letter-spacing:1px;margin-bottom:.6rem;}
+.stat-row{display:flex;justify-content:space-between;padding:.3rem 0;border-bottom:1px solid rgba(255,255,255,.03);}
+.stat-name{font-size:.8rem;color:var(--muted);}
+.stat-val{font-family:'Orbitron',sans-serif;font-size:.8rem;font-weight:700;}
+
+/* HISTORY */
+.hist-item{display:flex;align-items:center;gap:.6rem;padding:.6rem 1rem;border-bottom:1px solid rgba(255,255,255,.03);}
+.hist-badge{font-size:.65rem;font-weight:700;padding:.2rem .5rem;border-radius:3px;font-family:'Orbitron',sans-serif;letter-spacing:1px;}
+.hist-badge.win{background:rgba(0,245,160,.15);color:var(--real);}
+.hist-badge.lose{background:rgba(255,107,53,.1);color:var(--warn);}
+.hist-badge.watch{background:rgba(255,255,255,.05);color:var(--muted);}
+.hist-car{width:14px;height:14px;border-radius:3px;}
+.hist-info{flex:1;}
+.hist-race{font-family:'Orbitron',sans-serif;font-size:.7rem;color:var(--text);}
+.hist-detail{font-size:.65rem;color:var(--muted);}
+.hist-amount{font-family:'Orbitron',sans-serif;font-size:.75rem;font-weight:700;}
+
+/* TIPS */
+.tip-box{margin:.5rem 1rem;background:rgba(255,149,0,.06);border:1px solid rgba(255,149,0,.2);border-radius:6px;padding:.8rem;font-size:.8rem;color:var(--muted);line-height:1.5;}
+.tip-box strong{color:var(--accent);}
+
+/* OUTCOMES BAR */
+.outcomes-wrap{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:.5rem .8rem;}
+.outcomes-label{font-family:'Orbitron',sans-serif;font-size:.58rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:.4rem;}
+.outcomes-bar{display:flex;gap:.3rem;flex-wrap:nowrap;overflow:hidden;}
+.outcome-pill{
+  flex-shrink:0;min-width:36px;padding:.25rem .4rem;border-radius:4px;
+  font-family:'Orbitron',sans-serif;font-size:.6rem;font-weight:700;
+  text-align:center;color:#000;white-space:nowrap;
+  animation:pillIn .25s ease;
+}
+@keyframes pillIn{from{opacity:0;transform:scale(.6);}to{opacity:1;transform:scale(1);}}
+
+
+
+
+/* Push app content down to account for fixed nav (56px) + fixed banner (~44px) */
+@media(max-width:880px){}
+
+
+/* ── LAYOUT & TIMER ─────────────────────────────────────────────────── */
+#phaseBanner{
+  position:fixed;
+  top:56px;left:0;right:0;z-index:90;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:.6rem 1rem;
+  border-bottom:1px solid;
+  background:rgba(4,6,15,.97);
+  transition:background .4s,border-color .4s;
+}
+#phaseBanner.staking{border-color:rgba(0,245,160,.25);background:rgba(4,6,15,.97);}
+#phaseBanner.locked{border-color:rgba(255,107,53,.5);background:rgba(255,107,53,.06);animation:lp .5s ease-in-out infinite alternate;}
+#phaseBanner.spinning,#phaseBanner.result{border-color:rgba(0,180,255,.3);background:rgba(0,180,255,.04);}
+#phaseBanner.payout{border-color:rgba(255,215,0,.4);background:rgba(255,215,0,.04);}
+.phase-timer{font-family:'Orbitron',sans-serif;font-size:1.8rem;font-weight:900;color:var(--ac);min-width:55px;text-align:right;flex-shrink:0;}
+.phase-label{font-family:'Orbitron',sans-serif;font-size:.7rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;}
+#phaseBanner.locked .phase-label{color:#ff6b35;}
+#phaseBanner.payout .phase-label{color:#ffd700;}
+.phase-info{font-size:.72rem;color:var(--muted);}
+.app{margin-top:100px;height:calc(100vh - 100px);}
+@media(max-width:880px){.app{height:auto;}}
+/* NAV mobile */
+@media(max-width:600px){
+  .nav-links,.nav-center{display:none !important;}
+  .wallet-bal{display:none !important;}
+  nav{padding:0 .7rem;}
+  #walletBtn{padding:.3rem .6rem;font-size:.62rem;}
+  .pool-row{grid-template-columns:repeat(2,1fr) !important;}
+  .stake-row{flex-direction:column;}
+  #stakeBtn{width:100%;}
+  .sidebar{border-left:none;border-top:1px solid var(--border);max-height:280px;}
+  .app{grid-template-columns:1fr !important;}
+}
+/* Winner overlay fullscreen on mobile */
+@media(max-width:880px){
+  #winnerOverlay,.winner-overlay{
+    position:fixed !important;top:100px !important;
+    left:0 !important;right:0 !important;bottom:0 !important;
+    border-radius:0 !important;z-index:999 !important;
+  }
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="logo">Pool<span>Party</span></a>
+  <div class="sim-badge">🟠 PRACTICE MODE</div>
+  <div class="nav-right">
+    <div class="fake-bal">FAKE INJ: <span id="fakeBalance">100.00</span></div>
+    <button class="refill-btn" onclick="refillBalance()">↺ Refill</button>
+    <a href="game.html" class="play-real">Play Real →</a>
+  </div>
+</nav>
+
+<div class="app">
+  <div class="main">
+
+    <!-- PRACTICE NOTICE -->
+    <div class="practice-banner">
+      <div class="pb-left">
+        <div class="pb-icon">🟠</div>
+        <div>
+          <div class="pb-text">PRACTICE MODE — No real INJ at stake</div>
+          <div class="pb-sub">Learn the game, test your strategy, then go play for real</div>
+        </div>
+      </div>
+      <a href="game.html" style="text-decoration:none;background:var(--real);color:#000;padding:.4rem 1rem;border-radius:4px;font-family:'Orbitron',sans-serif;font-size:.7rem;font-weight:700;letter-spacing:1px;white-space:nowrap;">Play Real</a>
+    </div>
+
+    <!-- PHASE BANNER -->
+    <div class="phase-banner staking" id="phaseBanner">
+      <div>
+        <div class="phase-label" id="phaseLabel">⏳ STAKING OPEN</div>
+        <div class="phase-info" id="phaseInfo">Pick your cars — place fake INJ to practice</div>
+      </div>
+      <div class="phase-timer" id="phaseTimer">30</div>
+    </div>
+
+    <!-- POOL STATS -->
+    <div class="pool-row">
+      <div class="pool-card">
+        <div class="pool-card-label">Pool</div>
+        <div class="pool-card-val" id="poolTotal">0.00</div>
+      </div>
+      <div class="pool-card">
+        <div class="pool-card-label">Race #</div>
+        <div class="pool-card-val" id="raceNum">001</div>
+      </div>
+      <div class="pool-card">
+        <div class="pool-card-label">My Stake</div>
+        <div class="pool-card-val" id="myStakeDisplay">—</div>
+      </div>
+      <div class="pool-card">
+        <div class="pool-card-label">P&L</div>
+        <div class="pool-card-val" id="pnlDisplay">0.00</div>
+      </div>
+    </div>
+
+    <!-- TRACK -->
+    <div class="track-container">
+      <canvas id="raceCanvas" width="900" height="220"></canvas>
+      <div id="winnerOverlay">
+        <div class="confetti-container" id="confettiContainer"></div>
+        <div class="winner-car-badge" id="winnerBadge">1</div>
+        <div class="winner-title">🏁 CAR <span id="winnerNum">1</span> WINS!</div>
+        <div class="winner-subtitle">BOOKING OPEN (30S)S NOW</div>
+        <div id="myResultBox" class="result-box watch">
+          <div class="result-label">Your Result</div>
+          <div class="result-val" id="myResultVal">Watching</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CAR SELECTION -->
+    <div class="car-odds" id="carOdds">
+      <div class="car-odd c1" data-car="1" onclick="toggleCar(1)">
+        <div class="car-dot" style="background:var(--car1)"></div>
+        <div class="car-num-label" style="color:var(--car1)">CAR 1</div>
+        <div class="car-pct" id="odds1">0%</div>
+        <div class="car-sel-badge" id="sel1"></div>
+      </div>
+      <div class="car-odd c2" data-car="2" onclick="toggleCar(2)">
+        <div class="car-dot" style="background:var(--car2)"></div>
+        <div class="car-num-label" style="color:var(--car2)">CAR 2</div>
+        <div class="car-pct" id="odds2">0%</div>
+        <div class="car-sel-badge" id="sel2"></div>
+      </div>
+      <div class="car-odd c3" data-car="3" onclick="toggleCar(3)">
+        <div class="car-dot" style="background:var(--car3)"></div>
+        <div class="car-num-label" style="color:var(--car3)">CAR 3</div>
+        <div class="car-pct" id="odds3">0%</div>
+        <div class="car-sel-badge" id="sel3"></div>
+      </div>
+      <div class="car-odd c4" data-car="4" onclick="toggleCar(4)">
+        <div class="car-dot" style="background:var(--car4)"></div>
+        <div class="car-num-label" style="color:var(--car4)">CAR 4</div>
+        <div class="car-pct" id="odds4">0%</div>
+        <div class="car-sel-badge" id="sel4"></div>
+      </div>
+      <div class="car-odd c5" data-car="5" onclick="toggleCar(5)">
+        <div class="car-dot" style="background:var(--car5)"></div>
+        <div class="car-num-label" style="color:var(--car5)">CAR 5</div>
+        <div class="car-pct" id="odds5">0%</div>
+        <div class="car-sel-badge" id="sel5"></div>
+      </div>
+    </div>
+
+    <!-- STAKE INPUT -->
+    <div class="stake-row">
+      <div class="stake-input-wrap">
+        <div class="input-label">Fake INJ Stake</div>
+        <div class="stake-input-box">
+          <input type="number" id="stakeAmount" placeholder="0.00" min="0.01" step="0.01" value="1"/>
+          <span class="stake-denom">FAKE INJ</span>
+        </div>
+        <div class="quick-btns">
+          <button class="quick-btn" onclick="setStake(1)">1</button>
+          <button class="quick-btn" onclick="setStake(5)">5</button>
+          <button class="quick-btn" onclick="setStake(10)">10</button>
+          <button class="quick-btn" onclick="setStake(25)">25</button>
+          <button class="quick-btn" onclick="setStake(50)">50</button>
+        </div>
+      </div>
+      <button id="stakeBtn" onclick="placeStake()">PRACTICE STAKE</button>
+    </div>
+
+
+    <!-- RECENT OUTCOMES -->
+    <div class="outcomes-wrap">
+      <div class="outcomes-label">LAST 20 RESULTS</div>
+      <div class="outcomes-bar" id="outcomesBar"></div>
+    </div>
+
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-tabs">
+      <button class="tab-btn active" onclick="switchTab('feed',this)">Live Feed</button>
+      <button class="tab-btn" onclick="switchTab('stats',this)">My Stats</button>
+      <button class="tab-btn" onclick="switchTab('history',this)">History</button>
+    </div>
+
+    <div class="tab-pane active" id="tab-feed">
+      <div class="feed-header">
+        <span class="feed-title">LIVE POOL FEED</span>
+        <span class="feed-pool" id="feedPoolTotal">0.00</span>
+      </div>
+      <div class="tip-box"><strong>💡 Tip:</strong> Watch how the pool fills up and which cars get the most stake. Less popular cars = bigger payout if they win.</div>
+      <div class="feed-list" id="feedList"></div>
+    </div>
+
+    <div class="tab-pane" id="tab-stats">
+      <div class="stats-section">
+        <div class="stats-title">SESSION STATS</div>
+        <div class="stat-row"><span class="stat-name">Races Played</span><span class="stat-val" id="statRaces">0</span></div>
+        <div class="stat-row"><span class="stat-name">Wins</span><span class="stat-val" style="color:var(--real)" id="statWins">0</span></div>
+        <div class="stat-row"><span class="stat-name">Losses</span><span class="stat-val" style="color:var(--warn)" id="statLosses">0</span></div>
+        <div class="stat-row"><span class="stat-name">Win Rate</span><span class="stat-val" id="statWinRate">0%</span></div>
+        <div class="stat-row"><span class="stat-name">Total Staked</span><span class="stat-val" id="statStaked">0.00</span></div>
+        <div class="stat-row"><span class="stat-name">Total Won</span><span class="stat-val" id="statWon">0.00</span></div>
+        <div class="stat-row"><span class="stat-name">Net P&L</span><span class="stat-val" id="statPnl">0.00</span></div>
+        <div class="stat-row"><span class="stat-name">Balance</span><span class="stat-val" id="statBalance">100.00</span></div>
+      </div>
+      <div class="tip-box"><strong>💡 Strategy:</strong> Picking 1 car is risky but highest reward. Try different cars each race to understand the pool dynamics before going real.</div>
+    </div>
+
+    <div class="tab-pane" id="tab-history">
+      <div class="feed-header"><span class="feed-title">RACE HISTORY</span></div>
+      <div id="historyList"></div>
+    </div>
+  </div>
+</div>
+
+<script src="wallet.js"></script>
+<script>
+const CAR_COLORS = ['#00f5a0','#00b4ff','#ff6b35','#ffd700','#c084fc'];
+const STAKING_DURATION = 30000; // 60 seconds
+const LOCK_DURATION    = 5000;
+const RACE_DURATION    = 10000;  // 10s race
+const WINNER_DISPLAY   = 4000;
+
+let phase = 'staking';
+let raceNumber = 1;
+let selectedCars = [];
+let poolTotal = 0;
+let stakeEntries = [];
+let raceWinner = -1;
+let myStakeThisRace = null;
+let myHistory = [];
+let fakeBalance = 100;
+let totalStaked = 0, totalWon = 0, wins = 0, losses = 0;
+let animFrame, phaseInterval, phaseCountdown, botInterval;
+let raceStartTime = 0;
+let obstaclesList = [];
+let particles = [];
+
+const canvas = document.getElementById('raceCanvas');
+const ctx = canvas.getContext('2d');
+const LANE_H = 38, TRACK_Y_START = 8;
+const FINISH_X = canvas.width - 60;
+const CAR_W = 38, CAR_H = 19;
+
+const cars = [0,1,2,3,4].map(i=>({i,x:60,y:0,speed:0,baseSpeed:0,wobble:Math.random()*Math.PI*2,finished:false}));
+
+function getLaneY(i){ return TRACK_Y_START + i*LANE_H + LANE_H/2; }
+
+function drawTrack(){
+  ctx.fillStyle='#0d1118'; ctx.fillRect(0,0,canvas.width,canvas.height);
+  for(let i=0;i<5;i++){
+    const y=TRACK_Y_START+i*LANE_H;
+    ctx.fillStyle=i%2===0?'rgba(255,255,255,.025)':'rgba(0,0,0,.1)';
+    ctx.fillRect(0,y,canvas.width,LANE_H);
+  }
+  ctx.strokeStyle='rgba(255,255,255,.08)'; ctx.setLineDash([20,15]); ctx.lineWidth=1;
+  for(let i=1;i<5;i++){const y=TRACK_Y_START+i*LANE_H;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(canvas.width,y);ctx.stroke();}
+  ctx.setLineDash([]);
+  const fw=14;
+  for(let r=0;r<Math.ceil(canvas.height/fw);r++)for(let c=0;c<2;c++){ctx.fillStyle=(r+c)%2===0?'#fff':'#111';ctx.fillRect(FINISH_X+c*fw,r*fw,fw,fw);}
+  ctx.strokeStyle='rgba(255,149,0,.4)'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(60,TRACK_Y_START); ctx.lineTo(60,TRACK_Y_START+5*LANE_H); ctx.stroke();
+}
+
+function drawCar(car){
+  const x=car.x, y=getLaneY(car.i), col=CAR_COLORS[car.i];
+  const wobble=Math.sin(car.wobble)*1.2, isRacing=phase==='racing';
+  ctx.save(); ctx.translate(x, y+wobble);
+  if(car.speed>.5&&isRacing){
+    const fl=8+Math.random()*14;
+    const g=ctx.createLinearGradient(-CAR_W/2,0,-CAR_W/2-fl,0);
+    g.addColorStop(0,'rgba(255,140,0,.9)'); g.addColorStop(.5,'rgba(255,60,0,.6)'); g.addColorStop(1,'rgba(255,20,0,0)');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.ellipse(-CAR_W/2-fl*.4,0,fl*.6,3.5,0,0,Math.PI*2); ctx.fill();
+  }
+  const wxF=CAR_W/2-6, wxB=-CAR_W/2+6, wy=CAR_H/2+3;
+  ctx.fillStyle='#1a1a2e'; ctx.strokeStyle='#444'; ctx.lineWidth=1;
+  [[wxF,-wy],[wxF,wy],[wxB,-wy],[wxB,wy]].forEach(([wx,wz])=>{
+    ctx.beginPath(); ctx.ellipse(wx,wz,5,3,Math.PI/2,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  });
+  ctx.fillStyle=col; ctx.shadowColor=col; ctx.shadowBlur=6;
+  ctx.beginPath();
+  ctx.moveTo(CAR_W/2,0);
+  ctx.bezierCurveTo(CAR_W/2,-CAR_H/2,CAR_W/4,-CAR_H/2,0,-CAR_H/2);
+  ctx.lineTo(-CAR_W/2+6,-CAR_H/2); ctx.quadraticCurveTo(-CAR_W/2,-CAR_H/2,-CAR_W/2,-CAR_H/2+6);
+  ctx.lineTo(-CAR_W/2,CAR_H/2-6); ctx.quadraticCurveTo(-CAR_W/2,CAR_H/2,-CAR_W/2+6,CAR_H/2);
+  ctx.lineTo(0,CAR_H/2); ctx.bezierCurveTo(CAR_W/4,CAR_H/2,CAR_W/2,CAR_H/2,CAR_W/2,0);
+  ctx.closePath(); ctx.fill(); ctx.shadowBlur=0;
+  ctx.strokeStyle='rgba(0,0,0,0.4)'; ctx.lineWidth=1; ctx.stroke();
+  ctx.fillStyle='rgba(0,0,0,0.28)'; ctx.beginPath(); ctx.ellipse(0,0,CAR_W*.28,CAR_H*.36,0,0,Math.PI*2); ctx.fill();
+  const eyeX=CAR_W/2-10;
+  [-6,6].forEach(yo=>{
+    ctx.fillStyle='#f0f8ff'; ctx.beginPath(); ctx.ellipse(eyeX,yo,5,6,Math.PI*.1,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#1a6ef5'; ctx.beginPath(); ctx.ellipse(eyeX+1,yo,3,4,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#000'; ctx.beginPath(); ctx.ellipse(eyeX+1.5,yo,1.5,2.5,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.8)'; ctx.beginPath(); ctx.arc(eyeX+.5,yo-1.5,1,0,Math.PI*2); ctx.fill();
+  });
+  ctx.fillStyle='rgba(255,255,255,0.9)'; ctx.font='bold 9px Orbitron,monospace';
+  ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(car.i+1,-4,0);
+  if(car.speed>1&&isRacing){
+    for(let s=0;s<4;s++){
+      const len=12+Math.random()*22, sy=(Math.random()-.5)*CAR_H*.6;
+      ctx.strokeStyle=`rgba(255,255,255,${.1+Math.random()*.15})`; ctx.lineWidth=.8+Math.random();
+      ctx.beginPath(); ctx.moveTo(-CAR_W/2-4,sy); ctx.lineTo(-CAR_W/2-4-len,sy); ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
+function drawObstacles(){
+  obstaclesList.forEach(o=>{
+    if(o.hit) return;
+    ctx.save(); ctx.translate(o.x,getLaneY(o.lane));
+    if(o.type==='oil'){ctx.fillStyle='rgba(80,40,200,.6)';ctx.beginPath();ctx.ellipse(0,0,18,8,0,0,Math.PI*2);ctx.fill();}
+    else{ctx.fillStyle='#555';ctx.beginPath();ctx.arc(0,0,8,0,Math.PI*2);ctx.fill();ctx.fillStyle='#888';ctx.beginPath();ctx.arc(-3,-2,4,0,Math.PI*2);ctx.fill();}
+    ctx.restore();
+  });
+}
+
+function drawParticles(){
+  particles=particles.filter(p=>p.life>0);
+  particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.life--;ctx.globalAlpha=p.life/p.maxLife;ctx.fillStyle=p.color;ctx.fillRect(p.x,p.y,p.size,p.size);});
+  ctx.globalAlpha=1;
+}
+
+function spawnHitParticles(x,y,color){
+  for(let i=0;i<12;i++) particles.push({x,y,vx:(Math.random()-.5)*4,vy:(Math.random()-.5)*4,size:Math.random()*4+2,color,life:20,maxLife:20});
+}
+
+let nextObstacleTime = 0;
+
+function initRace(){
+  raceWinner=Math.floor(Math.random()*5);
+  cars.forEach(c=>{
+    c.x=70; c.wobble=Math.random()*Math.PI*2; c.finished=false; c.speed=0;
+    c.baseSpeed=c.i===raceWinner ? 1.38+Math.random()*.08 : 1.0+Math.random()*.28;
+  });
+  obstaclesList=[]; nextObstacleTime=0; particles=[];
+}
+
+function updateRace(elapsed){
+  const progress=Math.min(elapsed/RACE_DURATION,1);
+  // Spawn obstacles dynamically ahead of leading car
+  if(elapsed>nextObstacleTime&&progress<0.88){
+    const leadX=Math.max(...cars.map(c=>c.x));
+    const spawnX=leadX+80+Math.random()*120;
+    if(spawnX<FINISH_X-40){
+      obstaclesList.push({lane:Math.floor(Math.random()*5),x:spawnX,type:Math.random()>.5?'oil':'rock',hit:false});
+    }
+    nextObstacleTime=elapsed+900+Math.random()*600;
+  }
+  cars.forEach(c=>{
+    if(c.finished) return;
+    c.speed+=(c.baseSpeed-c.speed)*.1;
+    if(c.i===raceWinner&&progress>.85) c.speed=Math.max(c.speed,c.baseSpeed*1.12);
+    c.x+=c.speed; c.wobble+=.12;
+    obstaclesList.forEach(o=>{
+      if(o.hit) return;
+      if(o.lane===c.i&&Math.abs(c.x-o.x)<20){
+        o.hit=true; c.speed*=c.i===raceWinner?.97:.78;
+        spawnHitParticles(o.x,getLaneY(c.i),CAR_COLORS[c.i]);
+      }
+    });
+    if(c.x>=FINISH_X-CAR_W/2){c.x=FINISH_X-CAR_W/2;c.finished=true;c.speed=0;}
+  });
+}
+
+function renderFrame(ts){
+  if(phase!=='racing'){drawIdleTrack();return;}
+  const elapsed=ts-raceStartTime;
+  updateRace(elapsed);
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  drawTrack(); drawObstacles();
+  cars.forEach(c=>drawCar(c));
+  drawParticles();
+  if(elapsed>=RACE_DURATION){endRace();return;}
+  animFrame=requestAnimationFrame(renderFrame);
+}
+
+function drawIdleTrack(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  drawTrack();
+  cars.forEach(c=>{c.wobble+=.04;drawCar(c);});
+}
+
+
+// ── OUTCOMES BAR ──────────────────────────────────────────────────────────────
+const CAR_COLS_OUT = ['#00f5a0', '#00b4ff', '#ff6b35', '#ffd700', '#c084fc'];
+let recentOutcomes=[];
+function addOutcome(label,color){
+  recentOutcomes.push({label,color});
+  if(recentOutcomes.length>20)recentOutcomes.shift();
+  renderOutcomes();
+}
+function renderOutcomes(){
+  const bar=document.getElementById('outcomesBar');if(!bar)return;
+  bar.innerHTML='';
+  recentOutcomes.forEach(o=>{
+    const p=document.createElement('div');p.className='outcome-pill';
+    p.style.background=o.color;p.style.color='#000';p.textContent=o.label;
+    bar.appendChild(p);
+  });
+}
+
+
+// ── TIMER FORMATTER ──────────────────────────────────────────────────────────
+function formatTimer(ms) {
+  if (ms <= 0) return '0';
+  const totalSecs = Math.ceil(ms / 1000);
+  if (totalSecs < 60) return String(totalSecs);
+  const h = Math.floor(totalSecs / 3600);
+  const m = Math.floor((totalSecs % 3600) / 60);
+  const s = totalSecs % 60;
+  if (h > 0) return h + 'h ' + String(m).padStart(2,'0') + 'm';
+  return String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+}
+
+function startStaking(){
+  phase='staking'; stakeEntries=[]; poolTotal=0; myStakeThisRace=null;
+  // Reset cars to start line
+  cars.forEach(c=>{c.x=70;c.speed=0;c.finished=false;c.wobble=Math.random()*Math.PI*2;});
+  obstaclesList=[]; particles=[]; selectedCars=[];
+  updatePhaseBanner('staking','⏳ STAKING OPEN','Pick your cars — place fake INJ');
+  document.getElementById('stakeBtn').disabled=false;
+  document.getElementById('stakeBtn').textContent='PRACTICE STAKE';
+  document.getElementById('carOdds').style.pointerEvents='auto';
+  document.getElementById('myStakeDisplay').textContent='—';
+  updatePoolDisplay(); clearFeed(); hideWinnerOverlay();
+  cancelAnimationFrame(animFrame);
+  animFrame=requestAnimationFrame(function idleLoop(){
+    if(phase==='staking'||phase==='locked'){drawIdleTrack();animFrame=requestAnimationFrame(idleLoop);}
+  });
+  startSimulatedStakes();
+  startCountdown(STAKING_DURATION, remaining=>{
+    const secs=Math.ceil(remaining/1000);
+    document.getElementById('phaseTimer').textContent=secs;
+    if(secs<=5&&secs>0) transitionToLocked(secs);
+  }, startRacing);
+}
+
+function transitionToLocked(secsLeft){
+  if(phase==='locked') return;
+  phase='locked'; clearInterval(phaseInterval); stopSimulatedStakes();
+  document.getElementById('stakeBtn').disabled=true;
+  document.getElementById('carOdds').style.pointerEvents='none';
+  updatePhaseBanner('locked','🔒 BOOKING CLOSED','Race starting in 30 seconds...');
+  let s=secsLeft;
+  phaseCountdown=setInterval(()=>{
+    s--; document.getElementById('phaseTimer').textContent=Math.max(s,0);
+    if(s<=0){clearInterval(phaseCountdown);startRacing();}
+  },1000);
+}
+
+function startRacing(){
+  if(phase==='racing') return;
+  phase='racing'; raceStartTime=performance.now();
+  updatePhaseBanner('racing','🏁 RACING','10 seconds — GO!');
+  cancelAnimationFrame(animFrame); initRace();
+  animFrame=requestAnimationFrame(renderFrame);
+  let s=10;
+  document.getElementById('phaseTimer').textContent=s;
+  phaseCountdown=setInterval(()=>{s--;document.getElementById('phaseTimer').textContent=Math.max(s,0);if(s<=0)clearInterval(phaseCountdown);},1000);
+}
+
+function endRace(){
+  cancelAnimationFrame(animFrame); clearInterval(phaseCountdown);
+  phase='payout';
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  drawTrack(); drawObstacles(); cars.forEach(c=>drawCar(c));
+  showWinnerOverlay();
+  // Countdown for next race starts immediately alongside winner display
+  let nextIn=Math.ceil(WINNER_DISPLAY/1000);
+  updatePhaseBanner('payout','🏆 WINNER! NEXT RACE IN...',`Race #${raceNumber+1} — get ready to stake`);
+  document.getElementById('phaseTimer').textContent=nextIn;
+  const nc=setInterval(()=>{nextIn--;document.getElementById('phaseTimer').textContent=Math.max(nextIn,0);if(nextIn<=0)clearInterval(nc);},1000);
+  setTimeout(()=>{raceNumber++;document.getElementById('raceNum').textContent=String(raceNumber).padStart(3,'0');startStaking();},WINNER_DISPLAY);
+}
+
+function startCountdown(duration,onTick,onComplete){
+  const end=Date.now()+duration;
+  clearInterval(phaseInterval);
+  phaseInterval=setInterval(()=>{
+    const r=end-Date.now();
+    if(r<=0){clearInterval(phaseInterval);onComplete();}else{onTick(r);}
+  },100);
+}
+
+function updatePhaseBanner(phaseClass,label,info){
+  const b=document.getElementById('phaseBanner');
+  b.className=`phase-banner ${phaseClass}`;
+  document.getElementById('phaseLabel').textContent=label;
+  document.getElementById('phaseInfo').textContent=info;
+}
+
+function showWinnerOverlay(){
+  const ov=document.getElementById('winnerOverlay');
+  const badge=document.getElementById('winnerBadge');
+  badge.style.background=CAR_COLORS[raceWinner];
+  badge.textContent=raceWinner+1;
+  document.getElementById('winnerNum').textContent=raceWinner+1;
+  ov.classList.add('show');
+  spawnConfetti();
+
+  const rb=document.getElementById('myResultBox');
+  const rv=document.getElementById('myResultVal');
+  if(myStakeThisRace){
+    if(myStakeThisRace.cars.includes(raceWinner+1)){
+      const winners=stakeEntries.filter(e=>e.cars.includes(raceWinner+1));
+      const payout=calculatePayout(myStakeThisRace,winners.length);
+      fakeBalance+=payout;
+      totalWon+=payout; wins++;
+      const profit=payout-myStakeThisRace.amount;
+      rb.className='result-box win';
+      rv.textContent=`WIN! +${payout.toFixed(2)} FAKE INJ`;
+      myHistory.unshift({race:raceNumber,result:'win',car:raceWinner+1,staked:myStakeThisRace.amount,won:payout});
+    } else {
+      losses++;
+      rb.className='result-box lose';
+      rv.textContent=`LOSE — -${myStakeThisRace.amount.toFixed(2)} FAKE INJ`;
+      myHistory.unshift({race:raceNumber,result:'lose',car:myStakeThisRace.cars[0],staked:myStakeThisRace.amount,won:0});
+    }
+  } else {
+    rb.className='result-box watch'; rv.textContent='Watching — no stake';
+    myHistory.unshift({race:raceNumber,result:'watch',car:raceWinner+1,staked:0,won:0});
+  }
+
+  updateFakeBalance(); updateStats(); renderHistory();
+}
+
+function hideWinnerOverlay(){const ov=document.getElementById('winnerOverlay');ov.classList.remove('show');document.getElementById('confettiContainer').innerHTML='';}
+
+function calculatePayout(entry,winnerCount){
+  const m=entry.cars.length===1?1:entry.cars.length===2?.5:.33;
+  return (poolTotal*.99)/winnerCount*m;
+}
+
+function spawnConfetti(){
+  const c=document.getElementById('confettiContainer'); c.innerHTML='';
+  for(let i=0;i<40;i++){
+    const el=document.createElement('div');
+    const cols=['#00f5a0','#00b4ff','#ff6b35','#ffd700','#c084fc','#fff'];
+    el.style.cssText=`position:absolute;width:${4+Math.random()*6}px;height:${4+Math.random()*6}px;background:${cols[Math.floor(Math.random()*cols.length)]};left:${Math.random()*100}%;top:-10px;border-radius:${Math.random()>.5?'50%':'2px'};animation:confettiFall ${1+Math.random()*2}s ease ${Math.random()*.5}s forwards;`;
+    c.appendChild(el);
+  }
+  if(!document.getElementById('cStyle')){const s=document.createElement('style');s.id='cStyle';s.textContent='@keyframes confettiFall{to{top:110%;transform:rotate(720deg) translateX(50px);opacity:0;}}';document.head.appendChild(s);}
+}
+
+function toggleCar(n){
+  if(phase!=='staking') return;
+  if(myStakeThisRace) return; // already staked
+  selectedCars = selectedCars[0]===n ? [] : [n];
+  renderCarOdds();
+}
+
+function renderCarOdds(){
+  for(let i=1;i<=5;i++){
+    const el=document.querySelector(`.car-odd[data-car="${i}"]`);
+    const sel=document.getElementById(`sel${i}`);
+    if(selectedCars[0]===i){el.classList.add('selected');sel.textContent='✓ PICKED';sel.style.color=CAR_COLORS[i-1];}
+    else{el.classList.remove('selected');sel.textContent='';}
+    const cs=stakeEntries.filter(e=>e.cars.includes(i)).reduce((s,e)=>s+e.amount,0);
+    document.getElementById(`odds${i}`).textContent=(poolTotal>0?Math.round(cs/poolTotal*100):0)+'%';
+  }
+}
+
+function setStake(val){document.getElementById('stakeAmount').value=val;}
+
+function placeStake(){
+  if(phase!=='staking') return;
+  if(myStakeThisRace) return; // one stake per race
+  if(selectedCars.length===0){alert('Pick a car first!');return;}
+  const amount=parseFloat(document.getElementById('stakeAmount').value);
+  if(!amount||amount<=0){alert('Enter valid amount');return;}
+  if(amount>fakeBalance){alert('Not enough fake INJ! Hit Refill.');return;}
+  fakeBalance-=amount; totalStaked+=amount;
+  const entry={addr:'You',cars:[selectedCars[0]],amount,time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'})};
+  myStakeThisRace=entry;
+  addStakeEntry(entry);
+  document.getElementById('myStakeDisplay').textContent=`${amount} on Car ${selectedCars[0]}`;
+  // Lock after staking
+  document.getElementById('stakeBtn').disabled=true;
+  document.getElementById('stakeBtn').textContent='✓ STAKED';
+  document.getElementById('carOdds').style.pointerEvents='none';
+  updateFakeBalance(); updateStats();
+}
+
+function addStakeEntry(entry){
+  stakeEntries.push(entry); poolTotal+=entry.amount;
+  updatePoolDisplay(); renderFeedItem(entry); renderCarOdds();
+}
+
+function updatePoolDisplay(){
+  document.getElementById('poolTotal').textContent=poolTotal.toFixed(2);
+  document.getElementById('feedPoolTotal').textContent=poolTotal.toFixed(2)+' INJ';
+}
+
+function updateFakeBalance(){
+  document.getElementById('fakeBalance').textContent=fakeBalance.toFixed(2);
+  document.getElementById('statBalance').textContent=fakeBalance.toFixed(2);
+  const pnl=fakeBalance-100;
+  const pnlEl=document.getElementById('pnlDisplay');
+  pnlEl.textContent=(pnl>=0?'+':'')+pnl.toFixed(2);
+  pnlEl.className='pool-card-val '+(pnl>=0?'pos':'neg');
+}
+
+function updateStats(){
+  document.getElementById('statRaces').textContent=wins+losses;
+  document.getElementById('statWins').textContent=wins;
+  document.getElementById('statLosses').textContent=losses;
+  document.getElementById('statWinRate').textContent=wins+losses>0?Math.round(wins/(wins+losses)*100)+'%':'0%';
+  document.getElementById('statStaked').textContent=totalStaked.toFixed(2);
+  document.getElementById('statWon').textContent=totalWon.toFixed(2);
+  const pnl=totalWon-totalStaked;
+  const pnlEl=document.getElementById('statPnl');
+  pnlEl.textContent=(pnl>=0?'+':'')+pnl.toFixed(2)+' INJ';
+  pnlEl.style.color=pnl>=0?'var(--real)':'var(--warn)';
+}
+
+function refillBalance(){fakeBalance=100;updateFakeBalance();}
+
+const BOT_ADDRS=['Bot1','Bot2','Bot3','Bot4','Bot5','Bot6','Bot7','Bot8'];
+function startSimulatedStakes(){
+  botInterval=setInterval(()=>{
+    if(phase!=='staking') return;
+    const carPick=Math.floor(Math.random()*5)+1;
+    const amounts=[1,2,3,5,10,15,20];
+    addStakeEntry({addr:BOT_ADDRS[Math.floor(Math.random()*BOT_ADDRS.length)]+'...'+Math.random().toString(36).slice(2,4),cars:[carPick],amount:amounts[Math.floor(Math.random()*amounts.length)],time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'})});
+  },700+Math.random()*800);
+}
+function stopSimulatedStakes(){clearInterval(botInterval);}
+
+function renderFeedItem(entry){
+  const list=document.getElementById('feedList');
+  const div=document.createElement('div');
+  div.className='feed-item';
+  const isYou=entry.addr==='You';
+  const isReal=entry.addr.startsWith('inj1');
+  const shortAddr=isReal ? entry.addr.slice(0,7)+'...'+entry.addr.slice(-5) : entry.addr;
+  const explorerIcon=isReal
+    ?`<a href="https://testnet.explorer.injective.network/account/${entry.addr}" target="_blank" rel="noopener" title="View on Injective Explorer" style="color:#00b4ff;text-decoration:none;font-size:.8rem;opacity:.85;margin-left:.3rem;">↗</a>`
+    :'';
+  div.innerHTML=`
+    <div style="width:10px;height:10px;border-radius:50%;background:${CAR_COLORS[entry.cars[0]-1]};flex-shrink:0"></div>
+    <div style="flex:1">
+      <div class="feed-addr" style="${isYou?'color:var(--accent);font-weight:700':''}">${shortAddr}</div>
+      <div class="feed-car-tag">Car ${entry.cars.join(', ')}</div>
+    </div>
+    <div style="text-align:right">
+      <div class="feed-amount" style="color:${isYou?'var(--accent)':'var(--real)'}">+${entry.amount.toFixed(2)}${explorerIcon}</div>
+      <div class="feed-time">${entry.time}</div>
+    </div>`;
+  list.insertBefore(div,list.firstChild);
+  if(list.children.length>60) list.removeChild(list.lastChild);
+}
+
+function clearFeed(){document.getElementById('feedList').innerHTML='';}
+
+function renderHistory(){
+  const list=document.getElementById('historyList');
+  list.innerHTML='';
+  if(myHistory.length===0){list.innerHTML='<div style="padding:2rem;text-align:center;color:var(--muted);font-size:.85rem;">No races yet</div>';return;}
+  myHistory.slice(0,20).forEach(h=>{
+    const div=document.createElement('div');
+    div.className='hist-item';
+    div.innerHTML=`
+      <div class="hist-badge ${h.result}">${h.result.toUpperCase()}</div>
+      <div class="hist-car" style="background:${CAR_COLORS[h.car-1]}"></div>
+      <div class="hist-info">
+        <div class="hist-race">Race #${h.race} · Car ${h.car}</div>
+        <div class="hist-detail">Staked ${h.staked.toFixed(2)} FAKE INJ</div>
+      </div>
+      <div class="hist-amount" style="color:${h.result==='win'?'var(--real)':h.result==='lose'?'var(--warn)':'var(--muted)'}">
+        ${h.result==='win'?'+'+h.won.toFixed(2):h.result==='lose'?'-'+h.staked.toFixed(2):'—'}
+      </div>`;
+    list.appendChild(div);
+  });
+}
+
+function switchTab(name,btn){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(`tab-${name}`).classList.add('active');
+}
+
+animFrame=requestAnimationFrame(function loop(){if(phase==='staking'||phase==='payout'){drawIdleTrack();}animFrame=requestAnimationFrame(loop);});
+startStaking();
+</script>
+</body>
+</html>

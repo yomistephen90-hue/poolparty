@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PoolParty — 5 Games. One Pool. Built on Injective.</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#04060f;--surface:#0b0f1e;--surface2:#111827;
+  --border:#1c2340;--text:#e8eaf6;--muted:#5a6485;
+  --car:#00f5a0;--num:#a78bfa;--spin:#fb923c;--dice:#fbbf24;--moon:#f472b6;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow-x:hidden;}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 2rem;height:60px;background:rgba(4,6,15,.93);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);}
+.logo{font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;background:linear-gradient(90deg,var(--car),var(--num));-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-decoration:none;letter-spacing:-1px;}
+.nav-right{display:flex;gap:.8rem;align-items:center;}
+#walletBtn{background:transparent;border:1px solid var(--car);color:var(--car);padding:.45rem 1.1rem;border-radius:6px;cursor:pointer;font-family:'Syne',sans-serif;font-size:.75rem;font-weight:700;letter-spacing:1px;transition:.2s;}
+#walletBtn:hover,#walletBtn.connected{background:var(--car);color:#000;}
+.wallet-bal{font-family:'Syne',sans-serif;font-size:.75rem;color:var(--car);}
+
+/* HERO */
+.hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6rem 1.5rem 3rem;text-align:center;position:relative;overflow:hidden;}
+.hero-glow{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 70% 50% at 30% 40%,rgba(0,245,160,.07) 0%,transparent 60%),radial-gradient(ellipse 60% 40% at 75% 65%,rgba(167,139,250,.06) 0%,transparent 55%);}
+.floats{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+.fi{position:absolute;animation:fUp linear infinite;opacity:.07;}
+@keyframes fUp{from{transform:translateY(110vh) rotate(0deg);}to{transform:translateY(-10vh) rotate(360deg);opacity:0;}}
+.badge{display:inline-flex;align-items:center;gap:.5rem;background:rgba(0,245,160,.08);border:1px solid rgba(0,245,160,.22);color:var(--car);padding:.4rem 1rem;border-radius:20px;font-size:.75rem;font-weight:600;letter-spacing:2px;text-transform:uppercase;margin-bottom:1.8rem;}
+h1{font-family:'Syne',sans-serif;font-size:clamp(2.8rem,8vw,7rem);font-weight:800;line-height:.9;letter-spacing:-4px;margin-bottom:1.2rem;}
+.grad{background:linear-gradient(90deg,var(--car) 0%,var(--num) 40%,var(--moon) 80%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.hero-sub{font-size:1.05rem;color:var(--muted);max-width:460px;line-height:1.7;margin:0 auto 2.5rem;}
+.cta{display:flex;gap:.8rem;justify-content:center;flex-wrap:wrap;}
+.btn-g{background:var(--car);color:#000;padding:.9rem 2.2rem;border-radius:8px;font-family:'Syne',sans-serif;font-size:.9rem;font-weight:800;letter-spacing:1px;text-decoration:none;transition:.2s;border:none;cursor:pointer;}
+.btn-g:hover{background:#00d884;transform:translateY(-2px);}
+.btn-o{background:transparent;color:var(--text);padding:.9rem 2.2rem;border-radius:8px;font-family:'Syne',sans-serif;font-size:.9rem;font-weight:700;text-decoration:none;border:1px solid var(--border);transition:.2s;}
+.btn-o:hover{border-color:var(--num);color:var(--num);}
+
+/* STATS */
+.stats{display:flex;justify-content:center;gap:4rem;flex-wrap:wrap;padding:2.5rem 2rem;background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
+.stat{text-align:center;}
+.sv{font-family:'Syne',sans-serif;font-size:2.2rem;font-weight:800;background:linear-gradient(90deg,var(--car),var(--num));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.sl{font-size:.72rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:.2rem;}
+
+/* GAMES SECTION */
+.gs{padding:5rem 1.5rem;max-width:1200px;margin:0 auto;}
+.sec-tag{text-align:center;font-size:.72rem;color:var(--muted);letter-spacing:3px;text-transform:uppercase;margin-bottom:.5rem;}
+.sec-title{font-family:'Syne',sans-serif;font-size:clamp(1.8rem,4vw,3rem);font-weight:800;text-align:center;margin-bottom:.7rem;letter-spacing:-1px;}
+.sec-sub{text-align:center;color:var(--muted);margin-bottom:3rem;font-size:.92rem;}
+
+.ggrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:1.2rem;}
+
+/* GAME CARD */
+.gc{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;transition:.25s;position:relative;}
+.gc:hover{transform:translateY(-5px);}
+.gc:hover{border-color:var(--ac);}
+.gc-top{padding:1.8rem 1.5rem 1.3rem;position:relative;background:linear-gradient(135deg,rgba(255,255,255,.025) 0%,transparent 100%);}
+.gc-top::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,var(--ac),transparent);opacity:.05;pointer-events:none;}
+.gc-emoji{font-size:2.8rem;margin-bottom:.7rem;display:block;}
+.gc-name{font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;color:var(--ac);margin-bottom:.3rem;}
+.gc-desc{font-size:.86rem;color:var(--muted);line-height:1.6;}
+.gc-opts{display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.9rem;}
+.gc-opt{background:rgba(255,255,255,.04);border:1px solid var(--border);padding:.22rem .55rem;border-radius:4px;font-size:.68rem;color:var(--muted);font-weight:600;}
+.gc-bot{padding:.9rem 1.5rem 1.4rem;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:.75rem;}
+.gc-live{display:flex;justify-content:space-between;align-items:center;}
+.ld{width:6px;height:6px;border-radius:50%;background:var(--car);animation:pu 1.5s ease-in-out infinite;margin-right:.35rem;display:inline-block;}
+@keyframes pu{0%,100%{opacity:1;}50%{opacity:.25;}}
+.ll{font-size:.7rem;color:var(--muted);display:flex;align-items:center;}
+.lp{font-family:'Syne',sans-serif;font-size:.88rem;font-weight:700;color:var(--ac);}
+.gc-btns{display:flex;gap:.5rem;}
+.bplay{flex:1;padding:.62rem;border:none;border-radius:8px;cursor:pointer;font-family:'Syne',sans-serif;font-size:.78rem;font-weight:800;letter-spacing:1px;color:#000;transition:.2s;text-decoration:none;text-align:center;background:var(--ac);}
+.bplay:hover{opacity:.85;transform:translateY(-1px);}
+.bsim{padding:.62rem 1rem;border-radius:8px;cursor:pointer;font-family:'Syne',sans-serif;font-size:.78rem;font-weight:700;letter-spacing:1px;color:var(--ac);background:transparent;border:1px solid var(--ac);text-decoration:none;text-align:center;transition:.2s;}
+.bsim:hover{background:rgba(255,255,255,.04);}
+.gc.car{--ac:var(--car);}
+.gc.num{--ac:var(--num);}
+.gc.spin{--ac:var(--spin);}
+.gc.dice{--ac:var(--dice);}
+.gc.moon{--ac:var(--moon);}
+
+/* HOW */
+.how{padding:5rem 1.5rem;background:var(--surface);border-top:1px solid var(--border);}
+.how-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1.5rem;max-width:880px;margin:2.5rem auto 0;}
+.hw{text-align:center;padding:1.2rem;}
+.hn{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--car),var(--num));display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:.95rem;font-weight:800;color:#000;margin:0 auto .7rem;}
+.hw h3{font-family:'Syne',sans-serif;font-size:.9rem;font-weight:700;margin-bottom:.4rem;}
+.hw p{font-size:.82rem;color:var(--muted);line-height:1.55;}
+
+/* INJ */
+.inj{padding:3rem 1.5rem;text-align:center;background:linear-gradient(135deg,rgba(0,245,160,.03) 0%,rgba(167,139,250,.03) 100%);border-top:1px solid var(--border);}
+.inj h2{font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;margin-bottom:.4rem;}
+.inj p{color:var(--muted);font-size:.88rem;max-width:460px;margin:0 auto 1.3rem;}
+.ipills{display:flex;gap:.7rem;justify-content:center;flex-wrap:wrap;}
+.ip{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:.35rem .9rem;font-family:'Syne',sans-serif;font-size:.72rem;font-weight:700;color:var(--car);letter-spacing:1px;}
+
+footer{padding:1.8rem;text-align:center;border-top:1px solid var(--border);color:var(--muted);font-size:.82rem;}
+footer a{color:var(--car);text-decoration:none;}
+
+#noWalletModal{display:none;position:fixed;inset:0;z-index:999;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);align-items:center;justify-content:center;}
+.modal-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:2rem;text-align:center;max-width:330px;width:90%;}
+.modal-box h3{font-family:'Syne',sans-serif;font-size:1rem;margin-bottom:.8rem;color:var(--car);}
+.modal-box p{color:var(--muted);font-size:.85rem;margin-bottom:1.2rem;line-height:1.5;}
+.mbtns{display:flex;flex-direction:column;gap:.55rem;}
+.mbtns a{display:block;padding:.65rem;border-radius:5px;text-decoration:none;font-family:'Syne',sans-serif;font-size:.75rem;font-weight:700;}
+.mbtns a.k{background:#00f5a0;color:#000;}
+.mbtns a.l{background:#a78bfa;color:#000;}
+#closeNoWallet{background:none;border:1px solid var(--border);color:var(--muted);padding:.45rem .9rem;border-radius:4px;cursor:pointer;margin-top:.35rem;font-size:.78rem;}
+
+@media(max-width:600px){.stats{gap:2rem;}.cta{flex-direction:column;align-items:center;}}
+
+/* BUY INJ */
+.buy-inj{padding:4rem 1.5rem;background:var(--surface);border-top:1px solid var(--border);}
+.buy-inj-inner{max-width:900px;margin:0 auto;text-align:center;}
+.buy-title{font-family:'Syne',sans-serif;font-size:clamp(1.5rem,3vw,2.2rem);font-weight:800;margin-bottom:.5rem;letter-spacing:-1px;}
+.buy-sub{color:var(--muted);font-size:.92rem;margin-bottom:2rem;}
+.buy-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;text-align:left;}
+.buy-card{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:1.2rem;text-decoration:none;transition:.2s;display:block;}
+.buy-card:hover{border-color:var(--car);transform:translateY(-3px);}
+.buy-card.faucet{border-color:rgba(0,245,160,.2);}
+.buy-card-icon{font-size:1.6rem;margin-bottom:.5rem;}
+.buy-card-name{font-family:'Syne',sans-serif;font-size:.95rem;font-weight:700;color:var(--text);margin-bottom:.3rem;}
+.buy-card-desc{font-size:.78rem;color:var(--muted);line-height:1.5;}
+/* GAME LOGOS */
+.gc-logo{width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.8rem;margin-bottom:.8rem;font-weight:900;}
+.car-logo{background:linear-gradient(135deg,#00f5a0,#006644);color:#fff;}
+.num-logo{background:linear-gradient(135deg,#a78bfa,#4c1d95);color:#fff;font-family:'Orbitron',sans-serif;font-size:1.5rem;}
+.spin-logo{background:conic-gradient(#ef4444 0% 20%,#3b82f6 20% 40%,#22c55e 40% 60%,#eab308 60% 80%,#a855f7 80% 100%);border-radius:50%;font-size:0;width:56px;height:56px;}
+.dice-logo{background:linear-gradient(135deg,#fbbf24,#92400e);color:#fff;font-size:2rem;}
+.moon-logo{background:linear-gradient(135deg,#f472b6,#7e1d5f);}
+
+
+.buy-group-label{font-family:'Syne',sans-serif;font-size:.85rem;font-weight:700;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:1rem;text-align:left;}
+.buy-card{display:flex;align-items:flex-start;gap:.8rem;}
+.buy-card-logo{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;color:#fff;font-weight:700;}
+.buy-card.inj-card{border-color:rgba(0,245,160,.3);}
+
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="logo">PoolParty</a>
+  <div class="nav-right">
+    <span class="wallet-bal" id="walletBalance"></span>
+    <a href="#get-inj" style="background:rgba(0,245,160,.1);border:1px solid rgba(0,245,160,.3);color:#00f5a0;padding:.4rem 1rem;border-radius:6px;font-family:'Syne',sans-serif;font-size:.75rem;font-weight:700;text-decoration:none;letter-spacing:1px;">Get INJ</a>
+    <button id="walletBtn">Connect Wallet</button>
+  </div>
+</nav>
+
+<div class="floats" id="floats"></div>
+
+<section class="hero">
+  <div class="hero-glow"></div>
+  <div class="badge">🎉 Built on Injective · Provably Fair · 5 Games Live</div>
+  <h1>EVERY POOL<br><span class="grad">IS A PARTY</span></h1>
+  <p class="hero-sub">5 games running live simultaneously. Stake INJ, pick your winner, and split the pool. Stake anytime in the 30-Seconds booking window. Race runs for 10 seconds, payouts instant.</p>
+  <div class="cta">
+    <a href="#games" class="btn-g">🎮 Pick a Game</a>
+    <a href="simulate-car.html" class="btn-o">Try Free Practice</a>
+  </div>
+</section>
+
+<div class="stats">
+  <div class="stat"><div class="sv">5</div><div class="sl">Live Games</div></div>
+  <div class="stat"><div class="sv">30S</div><div class="sl">Booking Window</div></div>
+  <div class="stat"><div class="sv">99%</div><div class="sl">To Winners</div></div>
+  <div class="stat"><div class="sv">~$0</div><div class="sl">Gas Fees</div></div>
+  <div class="stat"><div class="sv">INJ</div><div class="sl">Native Token</div></div>
+</div>
+
+<section class="gs" id="games">
+  <div class="sec-tag">Choose your arena</div>
+  <h2 class="sec-title">5 Games. <span class="grad">All Live.</span></h2>
+  <p class="sec-sub">Each game runs independently with its own pool and countdown.</p>
+
+  <div class="ggrid">
+    <div class="gc car">
+      <div class="gc-top">
+        <div class="gc-logo car-logo">🏎</div>
+        <div class="gc-name">CAR RACE</div>
+        <div class="gc-desc">Watch 5 cartoon cars battle through obstacles on a live canvas track. Pick your car before the flag drops.</div>
+        <div class="gc-opts"><span class="gc-opt">Car 1</span><span class="gc-opt">Car 2</span><span class="gc-opt">Car 3</span><span class="gc-opt">Car 4</span><span class="gc-opt">Car 5</span></div>
+      </div>
+      <div class="gc-bot">
+        <div class="gc-live"><div class="ll"><span class="ld"></span>Live Pool</div><div class="lp" id="p-car">— INJ</div></div>
+        <div class="gc-btns">
+          <a href="game-car.html" class="bplay">PLAY NOW</a>
+          <a href="simulate-car.html" class="bsim">PRACTICE</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="gc num">
+      <div class="gc-top">
+        <div class="gc-logo num-logo">?</div>
+        <div class="gc-name">NUMBER RUSH</div>
+        <div class="gc-desc">4 cards flip to reveal numbers. One is the mystery number — guess if it's the highest or lowest in range before the cards reveal!</div>
+        <div class="gc-opts"><span class="gc-opt">🃏 Card Flip</span><span class="gc-opt">🔢 Guess Range</span><span class="gc-opt">⬆️ Highest</span><span class="gc-opt">⬇️ Lowest</span></div>
+      </div>
+      <div class="gc-bot">
+        <div class="gc-live"><div class="ll"><span class="ld"></span>Live Pool</div><div class="lp" id="p-num">— INJ</div></div>
+        <div class="gc-btns">
+          <a href="game-num.html" class="bplay">PLAY NOW</a>
+          <a href="simulate-num.html" class="bsim">PRACTICE</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="gc spin">
+      <div class="gc-top">
+        <div class="gc-logo spin-logo">◐</div>
+        <div class="gc-name">SPIN ZONE</div>
+        <div class="gc-desc">Five colors on the wheel. The ball drops once per round — one color takes the pool. Pure on-chain roulette.</div>
+        <div class="gc-opts"><span class="gc-opt">🔴 Red</span><span class="gc-opt">🔵 Blue</span><span class="gc-opt">🟢 Green</span><span class="gc-opt">🟡 Gold</span><span class="gc-opt">🟣 Purple</span></div>
+      </div>
+      <div class="gc-bot">
+        <div class="gc-live"><div class="ll"><span class="ld"></span>Live Pool</div><div class="lp" id="p-spin">— INJ</div></div>
+        <div class="gc-btns">
+          <a href="game-spin.html" class="bplay">PLAY NOW</a>
+          <a href="simulate-spin.html" class="bsim">PRACTICE</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="gc dice">
+      <div class="gc-top">
+        <div class="gc-logo dice-logo">⚄</div>
+        <div class="gc-name">CHAIN DICE</div>
+        <div class="gc-desc">The blockchain rolls the dice. Call the outcome — Low, Mid, High, Lucky or Wild — before the roll locks.</div>
+        <div class="gc-opts"><span class="gc-opt">⬇️ Low</span><span class="gc-opt">↔️ Mid</span><span class="gc-opt">⬆️ High</span><span class="gc-opt">🍀 Lucky</span><span class="gc-opt">💥 Wild</span></div>
+      </div>
+      <div class="gc-bot">
+        <div class="gc-live"><div class="ll"><span class="ld"></span>Live Pool</div><div class="lp" id="p-dice">— INJ</div></div>
+        <div class="gc-btns">
+          <a href="game-dice.html" class="bplay">PLAY NOW</a>
+          <a href="simulate-dice.html" class="bsim">PRACTICE</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="gc moon">
+      <div class="gc-top">
+        <div class="gc-logo moon-logo">🌙</div>
+        <div class="gc-name">MOON FLIP</div>
+        <div class="gc-desc">Read the crypto market vibe. Bull, Bear, Moon, or Rekt — one outcome wins the pool every round. Read the market vibe!</div>
+        <div class="gc-opts"><span class="gc-opt">🐂 Bull</span><span class="gc-opt">🐻 Bear</span><span class="gc-opt">🚀 Moon</span><span class="gc-opt">💀 Rekt</span></div>
+      </div>
+      <div class="gc-bot">
+        <div class="gc-live"><div class="ll"><span class="ld"></span>Live Pool</div><div class="lp" id="p-moon">— INJ</div></div>
+        <div class="gc-btns">
+          <a href="game-moon.html" class="bplay">PLAY NOW</a>
+          <a href="simulate-moon.html" class="bsim">PRACTICE</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="how">
+  <div class="sec-tag">Simple as it gets</div>
+  <h2 class="sec-title" style="text-align:center;font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;letter-spacing:-1px;">How It Works</h2>
+  <div class="how-grid">
+    <div class="hw"><div class="hn">1</div><h3>Connect Wallet</h3><p>Link Keplr or Leap. Near-zero gas on Injective.</p></div>
+    <div class="hw"><div class="hn">2</div><h3>Pick a Game</h3><p>5 games, each with its own live pool and timer.</p></div>
+    <div class="hw"><div class="hn">3</div><h3>Stake INJ</h3><p>Pick your option, enter your amount, confirm before lock.</p></div>
+    <div class="hw"><div class="hn">4</div><h3>Win the Pool</h3><p>Winners get INJ in their wallet instantly. New 30-Seconds booking opens right away.</p></div>
+  </div>
+</div>
+
+
+<div class="buy-inj" id="get-inj">
+  <div class="buy-inj-inner">
+    <div class="buy-title">Don't Have INJ?</div>
+    <p class="buy-sub">Already have crypto in another app? Swap it for INJ in minutes. No account needed on most.</p>
+
+    <div class="buy-group-label">🔁 Swap Your Crypto for INJ</div>
+    <div class="buy-cards">
+      <a href="https://app.injective.exchange/" target="_blank" rel="noopener" class="buy-card inj-card">
+        <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iaW5qR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwQkMxQ0MiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMjY3MEU4Ii8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgcng9IjIyIiBmaWxsPSIjMDgwRDFFIi8+CiAgPHRleHQgeD0iNTAiIHk9IjY4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iQXJpYWwgQmxhY2ssIHNhbnMtc2VyaWYiIAogICAgICAgIGZvbnQtd2VpZ2h0PSI5MDAiIGZvbnQtc2l6ZT0iNDIiIGZpbGw9InVybCgjaW5qR3JhZCkiPklOSjwvdGV4dD4KPC9zdmc+" style="width:40px;height:40px;border-radius:10px;object-fit:contain;flex-shrink:0;background:#080D1E;padding:2px;">
+        <div>
+          <div class="buy-card-name">Injective DEX</div>
+          <div class="buy-card-desc">Official Injective exchange — swap any token directly for INJ</div>
+        </div>
+      </a>
+      <a href="https://changelly.com/exchange/usdt/inj" target="_blank" rel="noopener" class="buy-card">
+        <img src="data:image/png;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCAAtACsDASIAAhEBAxEB/8QAGgAAAwADAQAAAAAAAAAAAAAAAAgJBAYHBf/EADAQAAEDBAECAgcJAAAAAAAAAAECAwQABQYRBxIhMUEIExQiUYGhFSMyQkNSYXGT/8QAFgEBAQEAAAAAAAAAAAAAAAAABAUD/8QAKBEAAgAFAgUEAwAAAAAAAAAAAQIAAwQRIRIxBQZBYeETcaHBgbHw/9oADAMBAAIRAxEAPwBXaKKcrgLiHGrNh1vvN5tcW53i4MIkrXKZDiY6VjqShCVbAIBGz4k7760KLXVyUaamzfYQSoqFkLcwmtFUmYt1vYR0MQIrSf2oZSB9BWr5nmHHeOJUzkdzs7TifxRigPO/5pBV9KkpzAXbSson8+IEvEyxsqX/AL2hAaKbLkvB8D5H4xmZphUJiHLhtOvNPR4vqBJDeytC0aGydEBWt7131sUptWKOsWpUkCxGCD0h0ieJwOLEbiCqRQVR7fYWFOuIZjxoqSpajpKEJR3JPkABU3aojd7vardgTt6uqEu25qCHnG1JC/WJ6QQkA9iSdAD4kVG5hBb0gO/1AOJgnQPf6hb+U/SHu94izLPi0I2mI6pSEzy4TIca2R1JGh6vfzI8iDWh2K5ceJ4rvEO8WqXIzB18qhygVEAHp6Tvq0APe2CCTvz8ukcx4LlHIXJEP2CRYkqFtabDaZiPuSkFS0lKNr6QpRSFEa7jw2K8v0VePot+ymbfrzF9pg2daRGP6L0jZ0fD3gkDeviU7+FbS3pZNLrXFrEgHPYE943RpMuRqGLWODmO+8W40vH+GbbYJbZQ99nrVJQR3St3qWpJ/kFZHypCapNd3UsWmY+vsltha1f0Ek1NmsuAOZjTXPUg/uMeGsXLsevmCnD4S5Rw7KcDhY1lMm2x58JhuM9HuJQGpSUABC09fuqJ6QSPEEeGtGk8oqvW0SVaBWNiNjDainWetji0UWtUXFY9vdi2lm0R4jyOlaIYbbQoEa/JryrKjvWS0wG4zD1vgxGU9LbaFIbbQB5AdgBU36Kjnl6+8348wE8Lvu/x5hyufeXsas2HXCzWa6RbneLgwuMhEV4OJjpWOlS1qTsAgE6HiTrtrZpNaKKr0NClGmlc33MOp6dZC2Ef/9k=" style="width:40px;height:40px;border-radius:10px;object-fit:contain;flex-shrink:0;background:#000;padding:2px;">
+        <div>
+          <div class="buy-card-name">Changelly</div>
+          <div class="buy-card-desc">Instant crypto swaps to INJ — no account required</div>
+        </div>
+      </a>
+      <a href="https://app.thorswap.finance/swap/ETH.ETH_INJ.INJ" target="_blank" rel="noopener" class="buy-card">
+        <img src="data:image/png;base64,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" style="width:40px;height:40px;border-radius:10px;object-fit:contain;flex-shrink:0;background:#000;padding:2px;">
+        <div>
+          <div class="buy-card-name">THORSwap</div>
+          <div class="buy-card-desc">Cross-chain swaps — swap BTC, ETH, BNB and more for INJ</div>
+        </div>
+      </a>
+      <a href="https://app.1inch.io/#/1/simple/swap/ETH/INJ" target="_blank" rel="noopener" class="buy-card">
+        <img src="data:image/png;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCAAjACUDASIAAhEBAxEB/8QAHAABAAEFAQEAAAAAAAAAAAAAAAYBAwQFCAIH/8QALBAAAQMDAwIFAwUAAAAAAAAAAQIDBAAFEQYSIQcxQVFhgaETcbEIFCJicv/EABQBAQAAAAAAAAAAAAAAAAAAAAD/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwDmSqPrZjNpclvJZSoZSCMqV9gPz2r1vQ025IcGUMoKyPPyHucD3rSWK3y9V6oj279/AiyJrm0SJz4YYb4J/ks8JTxgewoNgLraVHaHpST5qYGPhRPxWXgKaS82tLrSuEuIOQfT0Poea+q3/oJpvTMXpsq+auiOo1JPdYuU6LJbVDZbSeFNuHg4BwSeMg1Ddbad0ppG0WKVYtRN3NVzkSWZ7CX23Poobc2trwk5BI5BPf7GgjdKq4koWpCu6SQaUFuWlTlrnNIGVKZyB/lSVH4SajtitNyvt2j2mzwn50+SrazHZTuW4cE4A8eAakzaihYWnuDmsIw5sG5N3XTslyNIbO9CW3NjjSv6HxHP3/NB0T1n6e63mfpl6X2mLpa6uzrUmWqewlglcYZyCseHFcqRmlvyW2GwStxYSkepNTJeqep7qFNOXzUexY2q+o+4EkHzJOMVgWm3It4LzqkuSyCEhJyloHuc+KvgfgNhMWHJjzieynFKHuaVapQKUpQKUpQKUpQf/9k=" style="width:40px;height:40px;border-radius:10px;object-fit:contain;flex-shrink:0;background:#000;padding:2px;">
+        <div>
+          <div class="buy-card-name">1inch</div>
+          <div class="buy-card-desc">Finds the best swap rate for INJ across multiple DEXes</div>
+        </div>
+      </a>
+      <a href="https://app.uniswap.org/swap?outputCurrency=0xe28b3b32b6c345a34ff64674606124dd5aceca30" target="_blank" rel="noopener" class="buy-card">
+        <img src="data:image/png;base64,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" style="width:40px;height:40px;border-radius:10px;object-fit:contain;flex-shrink:0;background:#000;padding:2px;">
+        <div>
+          <div class="buy-card-name">Uniswap</div>
+          <div class="buy-card-desc">Swap Ethereum tokens for INJ on the biggest DEX</div>
+        </div>
+      </a>
+      <a href="https://pancakeswap.finance/swap?outputCurrency=0xe28b3b32b6c345a34ff64674606124dd5aceca30" target="_blank" rel="noopener" class="buy-card">
+        <div class="buy-card-logo" style="background:linear-gradient(135deg,#ffd700,#b8860b);">🥞</div>
+        <div>
+          <div class="buy-card-name">PancakeSwap</div>
+          <div class="buy-card-desc">Swap BNB Smart Chain tokens for INJ easily</div>
+        </div>
+      </a>
+    </div>
+
+    <div class="buy-group-label" style="margin-top:2rem;">💳 Buy INJ with Cash or Card</div>
+    <div class="buy-cards">
+      <a href="https://www.binance.com/en/trade/INJ_USDT" target="_blank" rel="noopener" class="buy-card">
+        <img src="data:image/png;base64,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" style="width:40px;height:40px;border-radius:10px;object-fit:contain;flex-shrink:0;background:#000;padding:2px;">
+        <div>
+          <div class="buy-card-name">Binance</div>
+          <div class="buy-card-desc">Buy INJ with USDT, BTC, or fiat — world's largest exchange</div>
+        </div>
+      </a>
+      <a href="https://www.coinbase.com/price/injective" target="_blank" rel="noopener" class="buy-card">
+        <img src="data:image/png;base64,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" style="width:40px;height:40px;border-radius:10px;object-fit:contain;flex-shrink:0;background:#000;padding:2px;">
+        <div>
+          <div class="buy-card-name">Coinbase</div>
+          <div class="buy-card-desc">Buy INJ with a credit card, debit card or bank transfer</div>
+        </div>
+      </a>
+      <a href="https://testnet.faucet.injective.network/" target="_blank" rel="noopener" class="buy-card faucet">
+        <img src="data:image/png;base64,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" style="width:40px;height:40px;border-radius:10px;object-fit:contain;flex-shrink:0;background:#000;padding:2px;">
+        <div>
+          <div class="buy-card-name">Testnet Faucet</div>
+          <div class="buy-card-desc">Get free testnet INJ to practice — no real money needed</div>
+        </div>
+      </a>
+    </div>
+  </div>
+</div>
+
+<div class="inj">
+  <h2>Powered by Injective</h2>
+  <p>Sub-second finality, near-zero gas, and CosmWasm contracts make instant provably fair payouts possible.</p>
+  <div class="ipills">
+    <span class="ip">CosmWasm Contract</span>
+    <span class="ip">0.6s Finality</span>
+    <span class="ip">~$0 Gas</span>
+    <span class="ip">On-Chain RNG</span>
+    <span class="ip">Provably Fair</span>
+  </div>
+</div>
+
+<footer>
+  <p>PoolParty · Built for <a href="#">Injective Africa Builderthon 2026</a> &nbsp;|&nbsp;
+  <a href="game-car.html">Car Race</a> · <a href="game-num.html">Number Rush</a> ·
+  <a href="game-spin.html">Spin Zone</a> · <a href="game-dice.html">Chain Dice</a> ·
+  <a href="game-moon.html">Moon Flip</a></p>
+</footer>
+
+<div id="noWalletModal">
+  <div class="modal-box">
+    <h3>Wallet Required</h3>
+    <p>Connect Keplr or Leap to stake INJ on PoolParty.</p>
+    <div class="mbtns">
+      <a href="https://www.keplr.app/download" target="_blank" class="k">Install Keplr</a>
+      <a href="https://www.leapwallet.io/download" target="_blank" class="l">Install Leap</a>
+    </div>
+    <button id="closeNoWallet">Maybe Later</button>
+  </div>
+</div>
+
+<script src="wallet.js"></script>
+<script>
+// Floating icons
+const icons=['🏎️','🔢','🎰','🎲','🌙','💰','🎉','🪙','⚡','🏆','🎯','🔥'];
+const fl=document.getElementById('floats');
+for(let i=0;i<20;i++){
+  const el=document.createElement('div'); el.className='fi';
+  el.textContent=icons[Math.floor(Math.random()*icons.length)];
+  el.style.cssText=`left:${Math.random()*100}%;font-size:${1.2+Math.random()*1.5}rem;animation-duration:${14+Math.random()*16}s;animation-delay:${-Math.random()*20}s;`;
+  fl.appendChild(el);
+}
+// Simulated live pools
+const pools={car:0,num:0,spin:0,dice:0,moon:0};
+setInterval(()=>{
+  Object.keys(pools).forEach(g=>{
+    pools[g]+=Math.random()*2.5;
+    const el=document.getElementById(`p-${g}`);
+    if(el) el.textContent=pools[g].toFixed(2)+' INJ';
+  });
+},1200);
+</script>
+</body>
+</html>

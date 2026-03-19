@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PoolParty — Spin Zone</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Orbitron:wght@700;900&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root{--bg:#04060f;--surface:#0b0f1e;--surface2:#111827;--border:#1c2340;--text:#e8eaf6;--muted:#5a6485;--ac:#fb923c;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 1.5rem;height:56px;background:rgba(4,6,15,.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);}
+.logo{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800;background:linear-gradient(90deg,#00f5a0,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-decoration:none;}
+.nav-links a{color:var(--muted);text-decoration:none;font-size:.8rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-left:1.2rem;transition:.2s;}
+.nav-links a:hover{color:var(--ac);}
+.nav-right{display:flex;align-items:center;gap:.8rem;}
+.wallet-bal{font-family:'Orbitron',sans-serif;font-size:.75rem;color:var(--ac);}
+#walletBtn{background:transparent;border:1px solid var(--ac);color:var(--ac);padding:.4rem 1rem;border-radius:4px;cursor:pointer;font-family:'Orbitron',sans-serif;font-size:.7rem;font-weight:700;letter-spacing:1px;transition:.2s;}
+#walletBtn:hover,#walletBtn.connected{background:var(--ac);color:#000;}
+.app{display:grid;grid-template-columns:1fr 310px;height:calc(100vh - 56px);margin-top:56px;}
+@media(max-width:880px){.app{grid-template-columns:1fr;height:auto;}}
+.main{display:flex;flex-direction:column;padding:.8rem;gap:.7rem;overflow-y:auto;}
+.phase-banner{display:flex;align-items:center;justify-content:space-between;padding:.7rem 1rem;border-radius:8px;border:1px solid;transition:.4s;}
+.phase-banner.staking{border-color:rgba(251,146,60,.3);background:rgba(251,146,60,.05);}
+.phase-banner.locked{border-color:rgba(255,107,53,.5);background:rgba(255,107,53,.08);animation:lp .5s ease-in-out infinite alternate;}
+.phase-banner.spinning{border-color:rgba(251,191,36,.4);background:rgba(251,191,36,.05);}
+.phase-banner.payout{border-color:rgba(34,211,238,.4);background:rgba(34,211,238,.05);}
+@keyframes lp{from{box-shadow:0 0 0 transparent;}to{box-shadow:0 0 16px rgba(255,107,53,.2);}}
+.phase-label{font-family:'Orbitron',sans-serif;font-size:.7rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--ac);}
+.phase-banner.locked .phase-label{color:#ff6b35;}.phase-banner.spinning .phase-label{color:#fbbf24;}.phase-banner.payout .phase-label{color:#22d3ee;}
+.phase-timer{font-family:'Orbitron',sans-serif;font-size:1.5rem;font-weight:900;color:var(--ac);}
+.phase-info{font-size:.75rem;color:var(--muted);}
+.pool-row{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;}
+.pool-card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.6rem .8rem;}
+.pool-card-label{font-size:.62rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
+.pool-card-val{font-family:'Orbitron',sans-serif;font-size:.95rem;font-weight:700;color:var(--ac);margin-top:.15rem;}
+/* WHEEL AREA */
+.wheel-area{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.2rem;display:flex;flex-direction:column;align-items:center;gap:.7rem;position:relative;}
+.wheel-wrap{position:relative;display:inline-block;}
+#wheelCanvas{display:block;border-radius:50%;filter:drop-shadow(0 0 20px rgba(251,146,60,.3));}
+.wheel-pointer{
+  position:absolute;top:-18px;left:50%;transform:translateX(-50%);
+  width:0;height:0;
+  border-left:12px solid transparent;
+  border-right:12px solid transparent;
+  border-top:24px solid #fff;
+  filter:drop-shadow(0 2px 4px rgba(0,0,0,.5));
+  z-index:5;
+}
+.wheel-center{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:36px;height:36px;border-radius:50%;
+  background:var(--bg);border:3px solid var(--border);
+  z-index:5;
+}
+.wheel-result{font-family:'Orbitron',sans-serif;font-size:1rem;font-weight:700;letter-spacing:2px;min-height:1.4rem;color:var(--ac);}
+
+/* WINNER OVERLAY */
+.winner-overlay{display:none;position:absolute;inset:0;z-index:10;background:rgba(4,6,15,.88);backdrop-filter:blur(6px);flex-direction:column;align-items:center;justify-content:center;gap:.5rem;border-radius:10px;}
+.winner-overlay.show{display:flex;animation:wIn .3s ease;}
+@keyframes wIn{from{opacity:0;transform:scale(.95);}to{opacity:1;transform:scale(1);}}
+.wo-color{width:60px;height:60px;border-radius:50%;border:4px solid rgba(255,255,255,.3);}
+.wo-title{font-family:'Orbitron',sans-serif;font-size:1.1rem;font-weight:700;color:#ffd700;}
+.wo-sub{font-size:.75rem;color:var(--muted);letter-spacing:2px;}
+.wo-top{background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.3);border-radius:6px;padding:.4rem 1rem;text-align:center;}
+.wo-top-label{font-size:.62rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;}
+.wo-top-val{font-family:'Orbitron',sans-serif;font-size:.9rem;font-weight:700;color:#ffd700;}
+.confetti-box{position:absolute;inset:0;pointer-events:none;overflow:visible;border-radius:10px;}
+
+/* OPTIONS */
+.options-label{font-family:'Orbitron',sans-serif;font-size:.65rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:.5rem;}
+.options-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.4rem;}
+.opt{background:var(--surface);border:2px solid var(--border);border-radius:8px;padding:.6rem .2rem;text-align:center;cursor:pointer;transition:.15s;user-select:none;}
+.opt:hover{transform:translateY(-2px);}
+.opt.selected{transform:translateY(-3px);}
+.opt-icon{font-size:1rem;display:block;margin-bottom:.2rem;}
+.opt-name{font-family:'Orbitron',sans-serif;font-size:.65rem;font-weight:700;color:var(--text);}
+.opt.selected .opt-name{color:#000;}
+.opt-pct{font-size:.58rem;color:var(--muted);margin-top:.15rem;}
+.opt.selected .opt-pct{color:rgba(0,0,0,.6);}
+/* STAKE */
+.stake-row{display:flex;gap:.6rem;align-items:flex-end;}
+.stake-wrap{flex:1;}
+.stake-label{font-size:.7rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:.3rem;}
+.stake-box{display:flex;align-items:center;gap:.4rem;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.55rem .8rem;}
+.stake-box input{background:none;border:none;outline:none;color:var(--text);font-family:'Orbitron',sans-serif;font-size:.95rem;font-weight:700;flex:1;width:0;}
+.stake-denom{font-family:'Orbitron',sans-serif;font-size:.65rem;color:var(--muted);}
+.quick{display:flex;gap:.3rem;margin-top:.3rem;}
+.qbtn{background:var(--surface2);border:1px solid var(--border);color:var(--muted);padding:.25rem .5rem;border-radius:4px;cursor:pointer;font-size:.7rem;font-family:'Orbitron',sans-serif;transition:.2s;}
+.qbtn:hover{border-color:var(--ac);color:var(--ac);}
+#stakeBtn{padding:.6rem 1.4rem;background:var(--ac);color:#000;border:none;border-radius:6px;cursor:pointer;font-family:'Orbitron',sans-serif;font-size:.8rem;font-weight:700;letter-spacing:1px;transition:.2s;white-space:nowrap;}
+#stakeBtn:hover{opacity:.85;}#stakeBtn:disabled{background:var(--muted);color:rgba(0,0,0,.5);cursor:not-allowed;}
+/* SIDEBAR */
+.sidebar{border-left:1px solid var(--border);background:var(--surface);display:flex;flex-direction:column;overflow:hidden;}
+.sidebar-tabs{display:flex;border-bottom:1px solid var(--border);}
+.stab{flex:1;padding:.65rem;text-align:center;cursor:pointer;font-family:'Orbitron',sans-serif;font-size:.6rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);border:none;background:none;border-bottom:2px solid transparent;transition:.2s;}
+.stab.active{color:var(--ac);border-bottom-color:var(--ac);}
+.tab-pane{display:none;flex:1;overflow-y:auto;flex-direction:column;}
+.tab-pane.active{display:flex;}
+.feed-header{padding:.7rem 1rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.feed-title{font-family:'Orbitron',sans-serif;font-size:.65rem;color:var(--muted);letter-spacing:1px;}
+.feed-pool{font-family:'Orbitron',sans-serif;font-size:.85rem;font-weight:700;color:var(--ac);}
+.feed-list{flex:1;overflow-y:auto;padding:.4rem;}
+.feed-item{display:flex;align-items:center;gap:.5rem;padding:.45rem .5rem;border-bottom:1px solid rgba(255,255,255,.03);animation:si .3s ease;}
+@keyframes si{from{opacity:0;transform:translateX(15px);}to{opacity:1;transform:translateX(0);}}
+.feed-addr{font-family:'Orbitron',sans-serif;font-size:.65rem;color:var(--muted);}
+.feed-pick{font-size:.6rem;color:var(--muted);}
+.feed-amt{font-family:'Orbitron',sans-serif;font-size:.7rem;font-weight:700;color:var(--ac);}
+.feed-time{font-size:.6rem;color:rgba(90,100,133,.5);}
+.lb-item{display:flex;align-items:center;gap:.6rem;padding:.6rem 1rem;border-bottom:1px solid rgba(255,255,255,.03);}
+.lb-rank{font-family:'Orbitron',sans-serif;font-size:.8rem;font-weight:700;width:20px;}
+.lb-rank.g{color:#ffd700;}.lb-rank.s{color:#c0c0c0;}.lb-rank.b{color:#cd7f32;}
+.hist-item{display:flex;align-items:center;gap:.5rem;padding:.5rem .9rem;border-bottom:1px solid rgba(255,255,255,.03);}
+.hist-badge{font-size:.6rem;font-weight:700;padding:.15rem .4rem;border-radius:3px;font-family:'Orbitron',sans-serif;}
+.hist-badge.win{background:rgba(251,146,60,.15);color:var(--ac);}
+.hist-badge.lose{background:rgba(255,107,53,.1);color:#ff6b35;}
+.hist-info{flex:1;}.hist-r{font-family:'Orbitron',sans-serif;font-size:.65rem;color:var(--text);}
+.hist-d{font-size:.6rem;color:var(--muted);}
+.hist-amt{font-family:'Orbitron',sans-serif;font-size:.7rem;font-weight:700;}
+#noWalletModal{display:none;position:fixed;inset:0;z-index:999;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);align-items:center;justify-content:center;}
+.modal-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:2rem;text-align:center;max-width:340px;width:90%;}
+.modal-box h3{font-family:'Orbitron',sans-serif;color:var(--ac);margin-bottom:.8rem;}
+.modal-box p{color:var(--muted);font-size:.85rem;margin-bottom:1.2rem;line-height:1.5;}
+.modal-btns{display:flex;flex-direction:column;gap:.6rem;}
+.modal-btns a{display:block;padding:.65rem;border-radius:5px;text-decoration:none;font-family:'Orbitron',sans-serif;font-size:.75rem;font-weight:700;}
+.modal-btns a.k{background:#00f5a0;color:#000;}.modal-btns a.l{background:#a78bfa;color:#000;}
+#closeNoWallet{background:none;border:1px solid var(--border);color:var(--muted);padding:.45rem .9rem;border-radius:4px;cursor:pointer;margin-top:.3rem;font-size:.8rem;}
+
+/* OUTCOMES BAR */
+.outcomes-wrap{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:.5rem .8rem;}
+.outcomes-label{font-family:'Orbitron',sans-serif;font-size:.58rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:.4rem;}
+.outcomes-bar{display:flex;gap:.3rem;flex-wrap:nowrap;overflow:hidden;}
+.outcome-pill{
+  flex-shrink:0;min-width:36px;padding:.25rem .4rem;border-radius:4px;
+  font-family:'Orbitron',sans-serif;font-size:.6rem;font-weight:700;
+  text-align:center;color:#000;white-space:nowrap;
+  animation:pillIn .25s ease;
+}
+@keyframes pillIn{from{opacity:0;transform:scale(.6);}to{opacity:1;transform:scale(1);}}
+
+
+
+
+/* Push app content down to account for fixed nav (56px) + fixed banner (~44px) */
+@media(max-width:880px){}
+
+
+/* ── LAYOUT & TIMER ─────────────────────────────────────────────────── */
+#phaseBanner{
+  position:fixed;
+  top:56px;left:0;right:0;z-index:90;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:.6rem 1rem;
+  border-bottom:1px solid;
+  background:rgba(4,6,15,.97);
+  transition:background .4s,border-color .4s;
+}
+#phaseBanner.staking{border-color:rgba(0,245,160,.25);background:rgba(4,6,15,.97);}
+#phaseBanner.locked{border-color:rgba(255,107,53,.5);background:rgba(255,107,53,.06);animation:lp .5s ease-in-out infinite alternate;}
+#phaseBanner.spinning,#phaseBanner.result{border-color:rgba(0,180,255,.3);background:rgba(0,180,255,.04);}
+#phaseBanner.payout{border-color:rgba(255,215,0,.4);background:rgba(255,215,0,.04);}
+.phase-timer{font-family:'Orbitron',sans-serif;font-size:1.8rem;font-weight:900;color:var(--ac);min-width:55px;text-align:right;flex-shrink:0;}
+.phase-label{font-family:'Orbitron',sans-serif;font-size:.7rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;}
+#phaseBanner.locked .phase-label{color:#ff6b35;}
+#phaseBanner.payout .phase-label{color:#ffd700;}
+.phase-info{font-size:.72rem;color:var(--muted);}
+.app{margin-top:100px;height:calc(100vh - 100px);}
+@media(max-width:880px){.app{height:auto;}}
+/* NAV mobile */
+@media(max-width:600px){
+  .nav-links,.nav-center{display:none !important;}
+  .wallet-bal{display:none !important;}
+  nav{padding:0 .7rem;}
+  #walletBtn{padding:.3rem .6rem;font-size:.62rem;}
+  .pool-row{grid-template-columns:repeat(2,1fr) !important;}
+  .stake-row{flex-direction:column;}
+  #stakeBtn{width:100%;}
+  .sidebar{border-left:none;border-top:1px solid var(--border);max-height:280px;}
+  .app{grid-template-columns:1fr !important;}
+}
+/* Winner overlay fullscreen on mobile */
+@media(max-width:880px){
+  #winnerOverlay,.winner-overlay{
+    position:fixed !important;top:100px !important;
+    left:0 !important;right:0 !important;bottom:0 !important;
+    border-radius:0 !important;z-index:999 !important;
+  }
+}
+</style>
+</head>
+<body>
+<nav>
+  <a href="index.html" class="logo">PoolParty</a>
+  <div class="nav-links">
+    <a href="index.html">All Games</a>
+    <a href="simulate-spin.html">Practice</a>
+  </div>
+  <div class="nav-right">
+    <span class="wallet-bal" id="walletBalance"></span>
+    <button id="walletBtn">Connect Wallet</button>
+  </div>
+</nav>
+<div class="app">
+  <div class="main">
+    <div class="phase-banner staking" id="phaseBanner">
+      <div>
+        <div class="phase-label" id="phaseLabel">&#9203; BOOKING OPEN (30S)</div>
+        <div class="phase-info" id="phaseInfo">Pick a color — stake INJ before the wheel spins</div>
+      </div>
+      <div class="phase-timer" id="phaseTimer">30</div>
+    </div>
+    <div class="pool-row">
+      <div class="pool-card"><div class="pool-card-label">Pool</div><div class="pool-card-val" id="poolTotal">0.000 INJ</div></div>
+      <div class="pool-card"><div class="pool-card-label">Players</div><div class="pool-card-val" id="poolPlayers">0</div></div>
+      <div class="pool-card"><div class="pool-card-label">Round</div><div class="pool-card-val" id="roundNum">#1</div></div>
+      <div class="pool-card"><div class="pool-card-label">My Pick</div><div class="pool-card-val" id="myPick">&#8212;</div></div>
+    </div>
+    <!-- WHEEL -->
+    <div class="wheel-area" id="wheelArea">
+      <div class="confetti-box" id="confettiBox"></div>
+      <div id="winnerOverlay" class="winner-overlay">
+        <div class="wo-color" id="woColor"></div>
+        <div class="wo-title" id="woTitle">&#127881; RED WINS!</div>
+        <div class="wo-sub">PAYOUTS SENT &middot; BOOKING OPEN (30S)</div>
+        <div class="wo-top"><div class="wo-top-label">Biggest Win</div><div class="wo-top-val" id="woTopVal">&#8212;</div></div>
+      </div>
+      <div class="wheel-wrap">
+        <div class="wheel-pointer"></div>
+        <canvas id="wheelCanvas" width="220" height="220"></canvas>
+        <div class="wheel-center"></div>
+      </div>
+      <div class="wheel-result" id="wheelResult">PLACE YOUR STAKE</div>
+    </div>
+    <!-- OPTIONS -->
+    <div>
+      <div class="options-label">PICK A COLOR</div>
+      <div class="options-grid" id="optionsGrid">
+        <div class="opt" data-idx="0" onclick="selOpt(0,this)" style="border-color:#ef4444"><span class="opt-icon">&#128308;</span><div class="opt-name">RED</div><div class="opt-pct" id="pct-0">0%</div></div>
+        <div class="opt" data-idx="1" onclick="selOpt(1,this)" style="border-color:#3b82f6"><span class="opt-icon">&#128309;</span><div class="opt-name">BLUE</div><div class="opt-pct" id="pct-1">0%</div></div>
+        <div class="opt" data-idx="2" onclick="selOpt(2,this)" style="border-color:#22c55e"><span class="opt-icon">&#128994;</span><div class="opt-name">GREEN</div><div class="opt-pct" id="pct-2">0%</div></div>
+        <div class="opt" data-idx="3" onclick="selOpt(3,this)" style="border-color:#eab308"><span class="opt-icon">&#128993;</span><div class="opt-name">GOLD</div><div class="opt-pct" id="pct-3">0%</div></div>
+        <div class="opt" data-idx="4" onclick="selOpt(4,this)" style="border-color:#a855f7"><span class="opt-icon">&#128995;</span><div class="opt-name">PURPLE</div><div class="opt-pct" id="pct-4">0%</div></div>
+      </div>
+    </div>
+    <div class="stake-row">
+      <div class="stake-wrap">
+        <div class="stake-label">Stake Amount</div>
+        <div class="stake-box"><input type="number" id="stakeAmount" value="0.1" min="0.01" step="0.01"/><span class="stake-denom">INJ</span></div>
+        <div class="quick">
+          <button class="qbtn" onclick="qs(0.1)">0.1</button><button class="qbtn" onclick="qs(0.5)">0.5</button>
+          <button class="qbtn" onclick="qs(1)">1</button><button class="qbtn" onclick="qs(5)">5</button><button class="qbtn" onclick="qs(10)">10</button>
+        </div>
+      </div>
+      <button id="stakeBtn" onclick="placeStake()">STAKE INJ</button>
+    </div>
+  </div>
+  <div class="sidebar">
+    <div class="sidebar-tabs">
+      <button class="stab active" onclick="switchTab('feed',this)">Live Stakes</button>
+      <button class="stab" onclick="switchTab('leaderboard',this)">Leaderboard</button>
+      <button class="stab" onclick="switchTab('history',this)">My History</button>
+    </div>
+    <div class="tab-pane active" id="tab-feed">
+      <div class="feed-header"><span class="feed-title">LIVE POOL FEED</span><span class="feed-pool" id="feedPool">0.000 INJ</span></div>
+      <div class="feed-list" id="feedList"></div>
+    </div>
+    <div class="tab-pane" id="tab-leaderboard">
+      <div class="feed-header"><span class="feed-title">LEADERBOARD</span><span style="font-family:Orbitron,sans-serif;font-size:.7rem;color:#5a6485;">ALL-TIME</span></div>
+      <div id="lbList"></div>
+    </div>
+    <div class="tab-pane" id="tab-history">
+      <div class="feed-header"><span class="feed-title">MY HISTORY</span></div>
+      <div id="histList"></div>
+    </div>
+  </div>
+</div>
+<div id="noWalletModal"><div class="modal-box"><h3>Wallet Required</h3><p>Connect Keplr or Leap to stake real INJ.</p><div class="modal-btns"><a href="https://www.keplr.app/download" target="_blank" class="k">Install Keplr</a><a href="https://www.leapwallet.io/download" target="_blank" class="l">Install Leap</a></div><button id="closeNoWallet">Maybe Later</button></div></div>
+<script src="wallet.js"></script>
+<script>
+const EXPLORER = 'https://testnet.explorer.injective.network/account';
+
+// ── WHEEL CONFIG ─────────────────────────────────────────────────────────────
+const SEGMENTS = [
+  { label:'RED',    color:'#ef4444', border:'#dc2626' },
+  { label:'BLUE',   color:'#3b82f6', border:'#2563eb' },
+  { label:'GREEN',  color:'#22c55e', border:'#16a34a' },
+  { label:'GOLD',   color:'#eab308', border:'#ca8a04' },
+  { label:'PURPLE', color:'#a855f7', border:'#9333ea' },
+];
+const SLICE = (2 * Math.PI) / SEGMENTS.length;
+
+// ── CANVAS SETUP ──────────────────────────────────────────────────────────────
+const canvas = document.getElementById('wheelCanvas');
+const ctx = canvas.getContext('2d');
+const CX = canvas.width / 2, CY = canvas.height / 2, R = 100;
+
+let currentAngle = 0;
+let spinRaf = null;
+
+function drawWheel(angle) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  SEGMENTS.forEach((seg, i) => {
+    const start = angle + i * SLICE;
+    const end   = start + SLICE;
+    // Segment fill
+    ctx.beginPath();
+    ctx.moveTo(CX, CY);
+    ctx.arc(CX, CY, R, start, end);
+    ctx.closePath();
+    ctx.fillStyle = seg.color;
+    ctx.fill();
+    // Border
+    ctx.strokeStyle = 'rgba(0,0,0,.25)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    // Label
+    ctx.save();
+    ctx.translate(CX, CY);
+    ctx.rotate(start + SLICE / 2);
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 11px Orbitron, monospace';
+    ctx.shadowColor = 'rgba(0,0,0,.6)';
+    ctx.shadowBlur = 4;
+    ctx.fillText(seg.label, R - 8, 4);
+    ctx.restore();
+  });
+  // Outer ring
+  ctx.beginPath();
+  ctx.arc(CX, CY, R, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(255,255,255,.15)';
+  ctx.lineWidth = 4;
+  ctx.stroke();
+}
+
+function getWinnerFromAngle(angle) {
+  // Pointer is at top (270° = -Math.PI/2)
+  // Normalise angle so 0 = top
+  const norm = ((- angle - Math.PI / 2) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+  return Math.floor(norm / SLICE) % SEGMENTS.length;
+}
+
+function spinWheel(winnerIdx, onDone) {
+  const SPIN_DURATION = 5000;
+  const MIN_ROTATIONS = 6;
+  // Pointer at top = -Math.PI/2
+  // We want center of winnerIdx segment exactly under pointer:
+  // finalAngle = -Math.PI/2 - winnerIdx*SLICE - SLICE/2
+  const pointerAngle = -Math.PI / 2;
+  const targetAngle = pointerAngle - winnerIdx * SLICE - SLICE / 2;
+  // Normalise so we always spin forward (subtract)
+  const fullSpins = MIN_ROTATIONS * 2 * Math.PI;
+  // Make endAngle = targetAngle - k*2π such that we spin at least MIN_ROTATIONS
+  const diff = ((currentAngle - targetAngle) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+  const endAngle = currentAngle - fullSpins - diff;
+  const startAngle = currentAngle;
+  const startTime = performance.now();
+
+  function easeOut(t) {
+    // cubic ease-out for smooth natural deceleration
+    return 1 - Math.pow(1 - t, 3);
+  }
+
+  function tick(ts) {
+    const elapsed = ts - startTime;
+    const t = Math.min(elapsed / SPIN_DURATION, 1);
+    currentAngle = startAngle + (endAngle - startAngle) * easeOut(t);
+    drawWheel(currentAngle);
+    if (t < 1) {
+      spinRaf = requestAnimationFrame(tick);
+    carryoverPool = 0;
+  } else {
+      currentAngle = endAngle;
+      drawWheel(currentAngle);
+      onDone();
+    }
+  }
+  spinRaf = requestAnimationFrame(tick);
+}
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let carryoverPool = 0; // Pool that carries from previous round
+let phase='staking', phaseInterval, phaseCountdown, botInterval;
+let poolTotal=0, poolPlayers=0, roundNum=1, selectedOpt=null, myStake=null;
+let stakeEntries=[], stakes=[0,0,0,0,0], myHistory=[];
+const STAKING_MS=30000, LOCK_MS=5000, SPIN_MS=10000, WINNER_MS=5000;
+
+// ── PHASE MACHINE ─────────────────────────────────────────────────────────────
+
+// ── OUTCOMES BAR ──────────────────────────────────────────────────────────────
+let recentOutcomes = [];
+function addOutcome(label, color) {
+  recentOutcomes.push({ label, color });
+  if (recentOutcomes.length > 20) recentOutcomes.shift();
+  renderOutcomes();
+}
+function renderOutcomes() {
+  const bar = document.getElementById('outcomesBar');
+  if (!bar) return;
+  bar.innerHTML = '';
+  recentOutcomes.forEach(o => {
+    const p = document.createElement('div');
+    p.className = 'outcome-pill';
+    p.style.background = o.color;
+    p.style.color = isLight(o.color) ? '#000' : '#fff';
+    p.textContent = o.label;
+    bar.appendChild(p);
+  });
+}
+function isLight(hex) {
+  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  return (r*299 + g*587 + b*114) / 1000 > 128;
+}
+
+
+// ── TIMER FORMATTER ──────────────────────────────────────────────────────────
+function formatTimer(ms) {
+  if (ms <= 0) return '0';
+  const totalSecs = Math.ceil(ms / 1000);
+  if (totalSecs < 60) return String(totalSecs);
+  const h = Math.floor(totalSecs / 3600);
+  const m = Math.floor((totalSecs % 3600) / 60);
+  const s = totalSecs % 60;
+  if (h > 0) return h + 'h ' + String(m).padStart(2,'0') + 'm';
+  return String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+}
+
+function startStaking() {
+  phase='staking';
+  stakeEntries=[]; stakes=[0,0,0,0,0];
+  poolTotal=0; poolPlayers=0; selectedOpt=null; myStake=null;
+  document.getElementById('feedList').innerHTML='';
+  document.getElementById('stakeBtn').disabled=false;
+  document.getElementById('stakeBtn').textContent='STAKE INJ';
+  document.getElementById('optionsGrid').style.pointerEvents='auto';
+  document.querySelectorAll('.opt').forEach(o=>o.classList.remove('selected'));
+  document.getElementById('myPick').textContent='\u2014';
+  document.getElementById('wheelResult').textContent='PLACE YOUR STAKE';
+  hideWinner();
+  updatePool();
+  updateBanner('staking','\u23f3 BOOKING OPEN (30S)','Pick a color \u2014 stake INJ before the wheel spins');
+  drawWheel(currentAngle);
+  startBots();
+  startCD(STAKING_MS, rem=>{
+    const s=Math.ceil(rem/1000);
+    document.getElementById('phaseTimer').textContent=s;
+    if(s<=5&&s>0&&phase==='staking') lockIt(s);
+  }, startSpin);
+}
+
+function lockIt(s) {
+  if(phase==='locked') return;
+  phase='locked'; clearInterval(phaseInterval); stopBots();
+  document.getElementById('stakeBtn').disabled=true;
+  document.getElementById('stakeBtn').textContent='\uD83D\uDD12 LOCKED';
+  document.getElementById('optionsGrid').style.pointerEvents='none';
+  updateBanner('locked','\uD83D\uDD12 STAKES LOCKED','Wheel spinning soon...');
+  let n=s;
+  phaseCountdown=setInterval(()=>{n--;document.getElementById('phaseTimer').textContent=n;if(n<=0){clearInterval(phaseCountdown);startSpin();}},1000);
+}
+
+function startSpin() {
+  if(phase==='spinning') return;
+  phase='spinning';
+  const winner = Math.floor(Math.random()*5);
+  updateBanner('spinning','\uD83C\uDFB0 SPINNING!','Wheel is spinning \u2014 no more bets!');
+  document.getElementById('wheelResult').textContent='SPINNING...';
+  let s = Math.ceil(SPIN_MS/1000);
+  document.getElementById('phaseTimer').textContent=s;
+  phaseCountdown=setInterval(()=>{s--;document.getElementById('phaseTimer').textContent=Math.max(s,0);if(s<=0)clearInterval(phaseCountdown);},1000);
+
+  spinWheel(winner, () => {
+    endRound(winner);
+  });
+}
+
+function endRound(winner) {
+  phase='payout';
+  const seg = SEGMENTS[winner];
+  document.getElementById('wheelResult').textContent = seg.label + ' WINS!';
+  document.getElementById('wheelResult').style.color = seg.color;
+  updateBanner('payout','\uD83C\uDFC6 '+seg.label.toUpperCase()+' WINS!','Paying out winners...');
+  showWinner(winner);
+
+  let n=Math.ceil(WINNER_MS/1000);
+  document.getElementById('phaseTimer').textContent=n;
+  clearInterval(phaseCountdown);
+  phaseCountdown=setInterval(()=>{
+    n--;document.getElementById('phaseTimer').textContent=Math.max(n,0);
+  },1000);
+  setTimeout(()=>{
+    clearInterval(phaseCountdown);
+    roundNum++;
+    document.getElementById('roundNum').textContent='#'+roundNum;
+    const wr=document.getElementById('wheelResult');
+    if(wr) wr.style.color='var(--ac)';
+    startStaking();
+  }, WINNER_MS);
+}
+
+function startCD(dur,onTick,onDone){const end=Date.now()+dur;clearInterval(phaseInterval);phaseInterval=setInterval(()=>{const r=end-Date.now();if(r<=0){clearInterval(phaseInterval);onDone();}else onTick(r);},100);}
+function updateBanner(cls,label,info){document.getElementById('phaseBanner').className='phase-banner '+cls;document.getElementById('phaseLabel').textContent=label;document.getElementById('phaseInfo').textContent=info;}
+
+// ── WINNER ────────────────────────────────────────────────────────────────────
+function showWinner(winner) {
+  const seg = SEGMENTS[winner];
+  const ov = document.getElementById('winnerOverlay');
+  const wc = document.getElementById('woColor');
+  wc.style.background = seg.color;
+  wc.style.boxShadow = '0 0 20px '+seg.color;
+  document.getElementById('woTitle').textContent = '\uD83C\uDF89 '+seg.label+' WINS!';
+  document.getElementById('woTitle').style.color = seg.color;
+
+  const winners = stakeEntries.filter(e=>e.pick===winner);
+  if(winners.length>0){const totalPool = poolTotal + carryoverPool; const _payout=(totalPool*0.99)/winners.length;winners.forEach(w=>updateLeaderboard(w.addr,_payout));}
+  if(winners.length>0){
+    const top = winners.reduce((a,b)=>a.amt>b.amt?a:b);
+    const payout = (totalPool*0.99)/winners.length;
+    const st = top.addr.startsWith('inj1')?top.addr.slice(0,7)+'...'+top.addr.slice(-5):top.addr;
+    const ei = top.addr.startsWith('inj1')?'<a href="'+EXPLORER+'/'+top.addr+'" target="_blank" rel="noopener" title="View on Injective Explorer" style="color:#00b4ff;text-decoration:none;font-size:.85rem;opacity:.85;margin-left:.3rem;">\u2197</a>':'';
+    document.getElementById('woTopVal').innerHTML = st+' \u00b7 +'+payout.toFixed(3)+' INJ'+ei;
+    if(myStake&&myStake.pick===winner){
+      const mp=(poolTotal*.99)/winners.length;
+      myHistory.unshift({round:roundNum,result:'win',pick:winner,staked:myStake.amt,won:mp});
+      showToast('\uD83C\uDFC6 +'+mp.toFixed(3)+' INJ! '+seg.label+' hit!');
+    } else if(myStake) myHistory.unshift({round:roundNum,result:'lose',pick:myStake.pick,staked:myStake.amt,won:0});
+  carryoverPool = 0;
+  } else {
+    carryoverPool += poolTotal; document.getElementById('woTopVal').innerHTML = '<span style="color:#ff6b35;">🎲 NO WINNERS!</span><br>Pool +'+carryoverPool.toFixed(3)+' INJ → Next Round';
+    if(myStake) myHistory.unshift({round:roundNum,result:'lose',pick:myStake.pick,staked:myStake.amt,won:0});
+  }
+  spawnConfetti(); renderHistory(); ov.classList.add('show');
+}
+
+function hideWinner(){document.getElementById('winnerOverlay').classList.remove('show');document.getElementById('confettiBox').innerHTML='';}
+
+function spawnConfetti(){
+  const c=document.getElementById('confettiBox');c.innerHTML='';
+  const cols=SEGMENTS.map(s=>s.color).concat(['#fff']);
+  for(let i=0;i<40;i++){const el=document.createElement('div');el.style.cssText='position:absolute;width:'+(4+Math.random()*5)+'px;height:'+(4+Math.random()*5)+'px;background:'+cols[Math.floor(Math.random()*cols.length)]+';left:'+Math.random()*100+'%;top:-8px;border-radius:'+(Math.random()>.5?'50%':'2px')+';animation:cFall '+(1.2+Math.random()*1.5)+'s ease '+(Math.random()*.5)+'s forwards;';c.appendChild(el);}
+  if(!document.getElementById('cStyle')){const s=document.createElement('style');s.id='cStyle';s.textContent='@keyframes cFall{to{top:108%;transform:rotate(720deg);opacity:0;}}';document.head.appendChild(s);}
+}
+
+// ── INTERACTION ───────────────────────────────────────────────────────────────
+function selOpt(idx, el) {
+  if(phase!=='staking'||myStake) return;
+  document.querySelectorAll('.opt').forEach(o=>{ o.classList.remove('selected'); o.style.background=''; });
+  el.classList.add('selected');
+  el.style.background = SEGMENTS[idx].color+'22';
+  el.querySelector('.opt-name').style.color = SEGMENTS[idx].color;
+  selectedOpt = idx;
+}
+function qs(v){document.getElementById('stakeAmount').value=v;}
+
+// ── WALLET GUARD ─────────────────────────────────────────────────────────────
+function requireWallet() {
+  const wallet = window.PumpWallet;
+  // Not connected at all
+  if (!wallet || !wallet.address) {
+    showWalletRequired();
+    return false;
+  }
+  // Wallet connected — allow stake
+  // Balance may still be loading (async) so we only block if explicitly 0
+  // after a successful fetch. If null/undefined, we let it through.
+  const bal = wallet.balance;
+  if (bal !== null && bal !== undefined && parseFloat(bal) <= 0) {
+    showWalletRequired();
+    return false;
+  }
+  return true;
+}
+function showWalletRequired() {
+  document.getElementById('walletRequiredModal').style.display = 'flex';
+}
+
+function placeStake(){
+  if (!requireWallet()) return;
+  if(phase!=='staking'||myStake)return;
+  if(selectedOpt===null){alert('Pick a color first!');return;}
+  const amt=parseFloat(document.getElementById('stakeAmount').value);
+  if(!amt||amt<=0){alert('Enter a valid amount');return;}
+  const addr=window.PumpWallet?.address||null;
+  const da=addr?addr.slice(0,7)+'...'+addr.slice(-5):'inj1You...';
+  const e={addr:da,pick:selectedOpt,amt,time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'})};
+  myStake=e; addEntry(e);
+  document.getElementById('myPick').textContent=SEGMENTS[selectedOpt].label;
+  document.getElementById('stakeBtn').disabled=true;
+  document.getElementById('stakeBtn').textContent='\u2713 STAKED';
+  document.getElementById('optionsGrid').style.pointerEvents='none';
+}
+function addEntry(e){stakeEntries.push(e);poolTotal+=e.amt;poolPlayers++;stakes[e.pick]+=e.amt;updatePool();renderFeedItem(e);updatePcts();}
+function updatePool(){document.getElementById('poolTotal').textContent=poolTotal.toFixed(3)+' INJ';document.getElementById('poolPlayers').textContent=poolPlayers;document.getElementById('feedPool').textContent=poolTotal.toFixed(3)+' INJ';}
+function updatePcts(){stakes.forEach((s,i)=>{const pct=poolTotal>0?Math.round(s/poolTotal*100):0;const el=document.getElementById('pct-'+i);if(el)el.textContent=pct+'%';});}
+
+// ── FEED ──────────────────────────────────────────────────────────────────────
+function renderFeedItem(e){
+  const list=document.getElementById('feedList');const d=document.createElement('div');d.className='feed-item';
+  const seg=SEGMENTS[e.pick];
+  const isReal=e.addr.startsWith('inj1');
+  const ei=isReal?'<a href="'+EXPLORER+'/'+e.addr+'" target="_blank" rel="noopener" title="View on Explorer" style="color:#00b4ff;text-decoration:none;font-size:.8rem;opacity:.85;margin-left:.3rem;">\u2197</a>':'';
+  d.innerHTML='<div style="width:10px;height:10px;border-radius:50%;background:'+seg.color+';flex-shrink:0"></div>'
+    +'<div style="flex:1"><div class="feed-addr">'+(e.addr.startsWith('inj1')?e.addr.slice(0,7)+'...'+e.addr.slice(-5):e.addr)+'</div>'
+    +'<div class="feed-pick">'+seg.label+'</div></div>'
+    +'<div style="text-align:right"><div class="feed-amt">+'+e.amt.toFixed(2)+' INJ'+ei+'</div>'
+    +'<div class="feed-time">'+e.time+'</div></div>';
+  list.insertBefore(d,list.firstChild);if(list.children.length>50)list.removeChild(list.lastChild);
+}
+let leaderboard={};
+function updateLeaderboard(addr,won){
+  if(!addr||addr.startsWith('You'))return;
+  if(!leaderboard[addr])leaderboard[addr]={won:0,wins:0};
+  leaderboard[addr].won+=won;leaderboard[addr].wins++;
+  renderLeaderboard();
+}
+function renderLeaderboard(){
+  const list=document.getElementById('lbList');if(!list)return;
+  const sorted=Object.entries(leaderboard).sort((a,b)=>b[1].won-a[1].won).slice(0,15);
+  if(!sorted.length){list.innerHTML='<div style="padding:1.5rem;text-align:center;color:#5a6485;font-size:.8rem;">No winners yet</div>';return;}
+  const ranks=['g','s','b'];list.innerHTML='';
+  sorted.forEach(([addr,data],i)=>{
+    const d=document.createElement('div');d.className='lb-item';
+    const short=addr.slice(0,7)+'...'+addr.slice(-5);
+    const ei=`<a href="${EXPLORER}/${addr}" target="_blank" rel="noopener" title="View on Injective Explorer" style="color:#00b4ff;text-decoration:none;font-size:.8rem;opacity:.85;margin-left:.3rem;">↗</a>`;
+    d.innerHTML=`<div class="lb-rank ${ranks[i]||''}">${i+1}</div>
+      <div style="flex:1"><div style="font-family:'Orbitron',sans-serif;font-size:.65rem;color:#e8eaf6;">${short}</div>
+      <div style="font-size:.6rem;color:#5a6485;">${data.wins} win${data.wins!==1?'s':''}</div></div>
+      <div style="text-align:right"><div style="font-family:'Orbitron',sans-serif;font-size:.72rem;font-weight:700;color:#fb923c;">+${data.won.toFixed(3)} INJ${ei}</div></div>`;
+    list.appendChild(d);
+  });
+}
+function renderHistory(){
+  const list=document.getElementById('histList');list.innerHTML='';
+  if(!myHistory.length){list.innerHTML='<div style="padding:1.5rem;text-align:center;color:var(--muted);font-size:.8rem;">No rounds yet</div>';return;}
+  myHistory.slice(0,15).forEach(h=>{
+    const seg=SEGMENTS[h.pick];
+    const d=document.createElement('div');d.className='hist-item';
+    d.innerHTML='<div class="hist-badge '+h.result+'">'+h.result.toUpperCase()+'</div>'
+      +'<div style="width:10px;height:10px;border-radius:50%;background:'+seg.color+';flex-shrink:0"></div>'
+      +'<div class="hist-info"><div class="hist-r">Round #'+h.round+' \u00b7 '+seg.label+'</div>'
+      +'<div class="hist-d">Staked '+h.staked.toFixed(2)+' INJ</div></div>'
+      +'<div class="hist-amt" style="color:'+(h.result==='win'?seg.color:'#ff6b35')+'">'+( h.result==='win'?'+'+h.won.toFixed(3):'-'+h.staked.toFixed(2))+' INJ</div>';
+    list.appendChild(d);
+  });
+}
+function startBots(){ /* disabled */ }
+function stopBots(){ /* disabled */ }
+function switchTab(n,b){document.querySelectorAll('.stab').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.tab-pane').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.getElementById('tab-'+n).classList.add('active');}
+function showToast(msg){const t=document.createElement('div');t.style.cssText='position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:#0a0820;border:2px solid var(--ac);color:var(--ac);padding:.8rem 1.5rem;border-radius:8px;font-family:Orbitron,monospace;font-size:.8rem;font-weight:700;z-index:9999;white-space:nowrap;';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),4000);}
+
+drawWheel(currentAngle);
+renderHistory();
+startStaking();
+</script>
+
+<!-- WALLET REQUIRED MODAL -->
+<div id="walletRequiredModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.88);backdrop-filter:blur(10px);align-items:center;justify-content:center;">
+  <div style="background:#0b0f1e;border:1px solid #1c2340;border-radius:16px;padding:2rem;text-align:center;max-width:380px;width:90%;position:relative;">
+    <div style="font-size:2.5rem;margin-bottom:.8rem;">🔒</div>
+    <div style="font-family:'Orbitron',sans-serif;font-size:1rem;font-weight:700;color:#e8eaf6;margin-bottom:.5rem;">WALLET REQUIRED</div>
+    <p style="color:#5a6485;font-size:.88rem;line-height:1.6;margin-bottom:1.2rem;">You need a connected Keplr or Leap wallet with real INJ to stake.<br>No INJ yet? Get some below.</p>
+    <div style="display:flex;flex-direction:column;gap:.6rem;margin-bottom:1rem;">
+      <button onclick="window.PumpWallet.connect().then(()=>document.getElementById('walletRequiredModal').style.display='none')"
+        style="background:#00f5a0;color:#000;border:none;padding:.7rem;border-radius:8px;cursor:pointer;font-family:'Orbitron',sans-serif;font-size:.8rem;font-weight:700;letter-spacing:1px;">
+        🔗 CONNECT WALLET
+      </button>
+      <a href="index.html#get-inj" style="background:transparent;border:1px solid #1c2340;color:#00b4ff;padding:.65rem;border-radius:8px;font-family:'Orbitron',sans-serif;font-size:.75rem;font-weight:700;letter-spacing:1px;text-decoration:none;display:block;">
+        💰 GET INJ FIRST
+      </a>
+      <a href="simulate-spin.html" id="practiceLink" style="background:transparent;border:1px solid #fbbf24;color:#fbbf24;padding:.65rem;border-radius:8px;font-family:'Orbitron',sans-serif;font-size:.75rem;font-weight:700;letter-spacing:1px;text-decoration:none;display:block;">
+        🟡 PRACTICE WITH FAKE INJ
+      </a>
+    </div>
+    <button onclick="document.getElementById('walletRequiredModal').style.display='none'"
+      style="background:none;border:none;color:#5a6485;cursor:pointer;font-size:.8rem;">
+      Maybe Later
+    </button>
+  </div>
+</div>
+
+</body>
+</html>
