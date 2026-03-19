@@ -1,31 +1,27 @@
 #!/bin/bash
 # ─────────────────────────────────────────────────────────────────────────────
-# PumpTrack — Injective Testnet Deployment Script
-# Run this after building the contract WASM
+# PoolParty — Injective Testnet Deployment Script
+# 5-Game Multiplayer Crypto Gaming Platform
 # ─────────────────────────────────────────────────────────────────────────────
 
 set -e
 
 # ── CONFIG — update these ────────────────────────────────────────────────────
-WALLET_NAME="pumptrack-deployer"          # Your Keplr key name in injectived
-CREATOR_ADDR="inj12hq0ez424h38xv6dd9jyjcpxgqxv3rrx52cud8"   # Your INJ wallet — receives fees          # your injectived key name
-CHAIN_ID="injective-888"                  # testnet chain ID
+WALLET_NAME="poolparty-deployer"              # Your Keplr wallet key name
+CREATOR_ADDR="inj1YOUR_ADDRESS_HERE"         # Your INJ wallet (receives 1% fees)
+CHAIN_ID="injective-888"                      # Injective testnet
 NODE="https://testnet.sentry.tm.injective.network:443"
 LCD="https://testnet.sentry.lcd.injective.network"
-WASM_FILE="./contract/artifacts/pumptrack.wasm"
+WASM_FILE="./contract/target/wasm32-unknown-unknown/release/poolparty.wasm"
 GAS_PRICES="500000000inj"
 
 # ── STEP 1: Build optimized WASM ─────────────────────────────────────────────
 echo ""
-echo "🔨 Building optimized WASM..."
+echo "🔨 Building optimized WASM for PoolParty..."
 cd contract
-docker run --rm \
-  -v "$(pwd)":/code \
-  --mount type=volume,source="$(basename $(pwd))_cache",target=/code/target \
-  --mount type=volume,source=registry_cache,target=/usr/local/cargo/registry \
-  cosmwasm/rust-optimizer:0.15.0
+cargo build --release --target wasm32-unknown-unknown
 cd ..
-echo "✅ Build complete: artifacts/pumptrack.wasm"
+echo "✅ Build complete: target/wasm32-unknown-unknown/release/poolparty.wasm"
 
 # ── STEP 2: Upload WASM to Injective testnet ──────────────────────────────────
 echo ""
@@ -55,7 +51,7 @@ echo "✅ Code ID: $CODE_ID"
 
 # ── STEP 3: Instantiate contract ──────────────────────────────────────────────
 echo ""
-echo "🚀 Instantiating PumpTrack contract..."
+echo "🚀 Instantiating PoolParty contract..."
 
 # Get your deployer address
 OWNER=$(injectived keys show "$WALLET_NAME" --output json | jq -r '.address')
@@ -63,15 +59,14 @@ echo "Owner address: $OWNER"
 
 INIT_MSG=$(cat <<EOF
 {
-  "owner": "$OWNER",
-  "min_stake": "100000000000000000",
-  "fee_bps": 100
+  "creator": "$OWNER",
+  "fee_percent": 1
 }
 EOF
 )
 
 INSTANTIATE_TX=$(injectived tx wasm instantiate "$CODE_ID" "$INIT_MSG" \
-  --label "PumpTrack v1" \
+  --label "PoolParty v1" \
   --from "$WALLET_NAME" \
   --chain-id "$CHAIN_ID" \
   --node "$NODE" \
@@ -94,21 +89,21 @@ CONTRACT_ADDR=$(injectived query tx "$INSTANTIATE_TX_HASH" \
 
 echo ""
 echo "════════════════════════════════════════════════════════════"
-echo "  ✅ PumpTrack deployed on Injective Testnet!"
+echo "  ✅ PoolParty deployed on Injective Testnet!"
 echo ""
 echo "  Contract Address: $CONTRACT_ADDR"
 echo "  Code ID:          $CODE_ID"
 echo "  Owner:            $OWNER"
 echo "════════════════════════════════════════════════════════════"
 echo ""
-echo "👉 Now update contract.js:"
-echo "   const PUMPTRACK_CONTRACT = \"$CONTRACT_ADDR\";"
+echo "👉 Now update config.js:"
+echo "   REACT_APP_CONTRACT_ADDRESS = \"$CONTRACT_ADDR\";"
 echo ""
 
-# ── STEP 4: Open first race ───────────────────────────────────────────────────
-echo "🏎️  Opening Race #1..."
+# ── STEP 4: Open first game ───────────────────────────────────────────────────
+echo "🎮 Opening Game Round #1..."
 
-OPEN_MSG='{"open_staking":{"race_id":1}}'
+OPEN_MSG='{"new_game":{}}'
 injectived tx wasm execute "$CONTRACT_ADDR" "$OPEN_MSG" \
   --from "$WALLET_NAME" \
   --chain-id "$CHAIN_ID" \
@@ -119,7 +114,11 @@ injectived tx wasm execute "$CONTRACT_ADDR" "$OPEN_MSG" \
   --broadcast-mode sync \
   --yes
 
-echo "✅ Race #1 staking is now OPEN on-chain!"
+echo "✅ Game Round #1 is now OPEN on-chain!"
 echo ""
 echo "🔗 View on Injective Explorer:"
 echo "   https://testnet.explorer.injective.network/contract/$CONTRACT_ADDR"
+echo ""
+echo "🎮 Play on frontend:"
+echo "   Update config.js with contract address above"
+echo "   Deploy to Netlify: npm run build && drag to app.netlify.com/drop"
