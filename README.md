@@ -255,16 +255,6 @@ poolparty/
 - **No Hidden Mechanics** — All calculations transparent
 - **User Funds Safe** — Payouts go directly to wallets
 
----
-
-## 📚 Documentation
-
-- **[GAME-DESCRIPTIONS.md](./GAME-DESCRIPTIONS.md)** — Detailed mechanics for each game
-- **[JUDGES-QUICK-GUIDE.md](./JUDGES-QUICK-GUIDE.md)** — 5-minute overview for judges
-- **[CARRYOVER-POOL-PATTERN.md](./CARRYOVER-POOL-PATTERN.md)** — Implementation guide
-
----
-
 ## 🚢 Deployment
 
 ### **Current Status**
@@ -304,29 +294,14 @@ Contributions welcome! Areas for improvement:
 
 ---
 
-## 📄 License
-
-MIT — See LICENSE file for details
-
----
-
 ## 👨‍💻 Author
 
 **Stephen** ([@yomistephen90-hue](https://github.com/yomistephen90-hue))
 
 - Full-stack Web3 developer
-- Built for Africa Builderthon 2026 (Injective track)
-- 6+ years in blockchain & gaming
-
+- Built for Africa Builderthon 2026 (Injective)
 ---
 
-## 📞 Support
-
-- **Issues:** Use GitHub Issues
-- **Questions:** Open a Discussion
-- **Bugs:** Report with details in Issues
-
----
 
 ## 🎯 Next Steps
 
@@ -338,18 +313,8 @@ MIT — See LICENSE file for details
 
 ---
 
-## 🏆 Buildathon Info
 
-**Event:** Africa Builderthon 2026  
-**Track:** Injective  
-**Status:** Live on testnet  
-**Deadline:** March 23, 2026  
-**Prize:** Building the future of African Web3
+**Ready to play? [Get Started Now](https://injpoolparty.netlify.app/)** 🚀
 
 ---
 
-**Ready to play? [Get Started Now](https://poolparty.app)** 🚀
-
----
-
-**Built with ❤️ for the Injective community**
